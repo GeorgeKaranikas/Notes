@@ -1,0 +1,14 @@
+--enumerating  subdomains from the ssl certificate of the corp using crt.sh
+
+    $ curl -s https://crt.sh/\?q\=example.com\&output\=json | jq . | grep name | cut -d":" -f2 | grep -v "CN=" | cut -d'"' -f2 | awk '{gsub(/\\n/,"\n");}1;' | sort -u
+
+
+--You can connect the subdomains and their ip addresses using the host command.
+    $ for i in $(cat subdomainlist);do host $i | grep "has address" | grep inlanefreight.com | cut -d" " -f1,4;done
+
+
+
+                  ----DNS Records
+     -dig
+Searchin for any dns records
+    $ dig any example.org

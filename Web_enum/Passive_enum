@@ -1,0 +1,96 @@
+
+            ----whois
+
+We can consider WHOIS as the "white pages" for domain names. It is a TCP-based transaction-oriented listening on TCP port 43 by default.
+We can use it for querying databases containing domain names, IP addresses, or autonomous systems and provide information services to Internet users.
+
+The WHOIS domain lookups allow us to retrieve information about the domain name of an already registered domain. The Internet Corporation of Assigned Names and Numbers (ICANN) requires that accredited registrars enter the holder's contact information, the domain's creation, and expiration dates, and other information in the Whois database immediately after registering a domain. In simple terms, the Whois database is a searchable list of all domains currently registered worldwide.
+
+
+        $ whois {domain_name}
+
+
+
+
+            ----nslookup
+
+        $nslookup -query={record_type} {target}
+
+
+
+            -----passive subdomain enum
+
+    --VirusTotal
+    -Search the domain name to relations in virustotal
+
+
+    ---using certificates
+
+    -Another interesting source of information we can use to extract subdomains is SSL/TLS certificates. The main reason is Certificate Transparency (CT), a project that requires every SSL/TLS certificate issued by a Certificate Authority (CA) to be published in a publicly accessible log.
+
+
+     -examine CT logs to discover additional domain names and subdomains for a target organization using two primary resources:
+
+    https://censys.io
+
+    https://crt.sh
+
+    $ export TARGET="target.com"
+    $ curl -s "https://crt.sh/?q=${TARGET}&output=json" | jq -r '.[] | "\(.name_value)\n\(.common_name)"' | sort -u > "${TARGET}_crt.sh.txt"
+
+
+
+    
+    ----TheHarvester
+
+    $ cat sources.txt
+
+        baidu
+        bufferoverun
+        crtsh
+        hackertarget
+        otx
+        projecdiscovery
+        rapiddns
+        sublist3r
+        threatcrowd
+        trello
+        urlscan
+        vhost
+        virustotal
+
+
+    $ export TARGET="facebook.com"
+    $ cat sources.txt | while read source; do theHarvester -d "${TARGET}" -b $source -f "${source}_${TARGET}";done
+
+    --extract the subdomain
+    $ cat *.json | jq -r '.hosts[]' 2>/dev/null | cut -d':' -f 1 | sort -u > "${TARGET}_theHarvester.txt"
+
+    ----merge the files
+    $ cat facebook.com_*.txt | sort -u > facebook.com_subdomains_passive.txt
+
+
+
+
+
+            ----Netcraft
+
+    visit https://sitereport.netcraft.com
+
+    Some interesting details we can observe from the report are:
+	
+    Background 	General information about the domain, including the date it was first seen by Netcraft crawlers.
+   
+    Network 	Information about the netblock owner, hosting company, nameservers, etc.
+    
+    Hosting history 	Latest IPs used, webserver, and target OS.
+
+
+
+                ---waybackmacine
+
+        $ go install github.com/tomnomnom/waybackurls@latest
+
+        $ waybackurls -dates https://facebook.com > waybackurls.txt
+
+    

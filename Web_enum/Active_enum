@@ -1,0 +1,135 @@
+        ----HTTP Headers
+
+
+      $ curl -I "http://${TARGET}"
+
+
+    There are also other characteristics to take into account while fingerprinting web servers in the response headers. These are:
+
+    X-Powered-By header: This header can tell us what the web app is using. We can see values like PHP, ASP.NET, JSP, etc.
+
+    Cookies: Cookies are another attractive value to look at as each technology by default has its cookies. Some of the default cookie values are:
+        .NET: ASPSESSIONID<RANDOM>=<COOKIE_VALUE>
+        PHP: PHPSESSID=<COOKIE_VALUE>
+        JAVA: JSESSION=<COOKIE_VALUE>
+
+
+
+            ----whatweb
+
+
+    Whatweb recognizes web technologies, including content management systems (CMS), blogging platforms, statistic/analytics packages, JavaScript libraries, web servers, and embedded devices.
+
+    $   whatweb -a3 https://www.facebook.com -v
+
+
+
+            ----whafwoof
+
+    WafW00f is a web application firewall (WAF) fingerprinting tool that sends requests and analyses responses to determine if a security solution is in place.
+
+    $ sudo apt install wafw00f -y
+
+    $ wafw00f -v https://www.target.com
+
+    
+    
+                    ----aquatone
+    
+    
+    Aquatone is a tool for automatic and visual inspection of websites across many hosts and is convenient for quickly gaining an overview of HTTP-based attack surfaces by scanning a list of configurable ports, visiting the website with a headless Chrome browser, and taking and screenshot. This is helpful, especially when dealing with huge subdomain lists. Aquatone is not installed by default in Parrot Linux, so we will need to install via the following commands.
+
+        $ sudo apt install golang chromium-driver
+        $ go get github.com/michenriksen/aquatone
+        $ export PATH="$PATH":"$HOME/go/bin"
+
+
+
+    -use cat in our subdomain list and pipe the command to aquatone via:
+    
+    $ cat facebook_aquatone.txt | aquatone -out ./aquatone -screenshot-timeout 1000
+
+
+
+            
+            ----ZoneTransfers
+
+        $ nslookup -type=any -query=AXFR {targret} {name_server}
+
+
+        If we manage to perform a successful zone transfer for a domain, there is no need to continue enumerating this particular domain as this will extract all the available information.
+
+    
+
+            -----gobuster
+    -using gobuster to brute subdomains based on a pattern that was found
+    -launch gobuster using the dns module, specifying the following options:
+
+    dns: Launch the DNS module
+    -q: Don't print the banner and other noise.
+    -r: Use custom DNS server
+    -d: A target domain name
+    -p: Path to the patterns file
+    -w: Path to the wordlist
+    -o: Output file
+
+
+    $ export TARGET="facebook.com"
+    $ export NS="d.ns.facebook.com"
+    $ export WORDLIST="numbers.txt"
+    $ gobuster dns -q -r "${NS}" -d "${TARGET}" -w "${WORDLIST}" -p ./patterns.txt -o "gobuster_${TARGET}.txt"
+
+
+
+
+            ----vhosts
+
+    A virtual host (vHost) is a feature that allows several websites to be hosted on a single server. This is an excellent solution if you have many websites and don't want to go through the time-consuming (and expensive) process of setting up a new web server for each one. Imagine having to set up a different webserver for a mobile and desktop version of the same page. There are two ways to configure virtual hosts:
+
+    IP-based virtual hosting
+    Name-based virtual hostin
+
+    
+    -IP-based Virtual Hosting
+
+    For this type, a host can have multiple network interfaces. Multiple IP addresses, or interface aliases, can be configured on each network interface of a host. The servers or virtual servers running on the host can bind to one or more IP addresses. This means that different servers can be addressed under different IP addresses on this host. From the client's point of view, the servers are independent of each other.
+
+    -Name-based Virtual Hosting
+
+    The distinction for which domain the service was requested is made at the application level. For example, several domain names, such as admin.inlanefreight.htb and backup.inlanefreight.htb, can refer to the same IP. Internally on the server, these are separated and distinguished using different folders. Using this example, on a Linux server, the vHost admin.inlanefreight.htb could point to the folder /var/www/admin. For backup.inlanefreight.htb the folder name would then be adapted and could look something like /var/www/backup.
+
+
+    -we can fuzz with ffuf
+
+    We can match or filter responses based on different options. The web server responds with a default and static website every time we issue an invalid virtual host in the HOST header. We can use the filter by size -fs option to discard the default response as it will always have the same size.
+
+
+    $ ffuf -w ./vhosts -u http://192.168.10.10 -H "HOST: FUZZ.randomtarget.com" -fs 612
+
+
+    -w: Path to our wordlist
+    -u: URL we want to fuzz
+    -H "HOST: FUZZ.randomtarget.com": This is the HOST Header, and the word FUZZ will be used as the fuzzing point.
+    -fs 612: Filter responses with a size of 612, default response size in this case.
+
+
+     ---we can find intresting words in in a web app using cewl ("cool")
+
+     $ cewl -m5 --lowercase -w wordlist.txt http://x.x.x.x
+
+     -m :word minimun length 
+     -w : output file
+     --lowercase : lowercase letters only
+     
+
+     --u can feed this wordlist to fuff
+
+     $ ffuf -w ./folders.txt:FOLDERS,./wordlist.txt:WORDLIST,./extensions.txt:EXTENSIONS -u http://192.168.10.10/FOLDERS/WORDLISTEXTENSIONS
+
+
+    -w: We separate the wordlists by coma and add an alias to them to inject them as fuzzing points later
+    -u: Our target URL with the fuzzing points.
+
+
+        folders could be something like wp-* etc.
+        
