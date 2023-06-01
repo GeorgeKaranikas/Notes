@@ -173,7 +173,12 @@
     $ python GetNPUsers.py m0chanAD/ -usersfile TargetUsers.txt -format hashcat -outputfile hashes.asreproast
 
 
+        This script can dynamically obtain the list of users in the domain
 
+        either through an RPC Null Session
+        or with an authenticated LDAP access to the domain (user or computer account)
+        If the users list cannot be dynamically retrieved, a file can be supplied.
+        
 
 
                         Kerberos Bruteforcing

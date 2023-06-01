@@ -53,6 +53,10 @@ magic output = script.out 	    Where the output of the magic script needs to be 
                     $ smbclient -N -L //x.x.x.x
 
 
+    !!!you can always try the guest account
+    
+
+
     --accessing the share
                     $ smbclient //x.x.x.x/{share}
                     $ smbclient ////x.x.x.x//{share}
@@ -66,11 +70,20 @@ magic output = script.out 	    Where the output of the magic script needs to be 
         $sudo nmap x.x.x.x -sV -sC -p139,445
 
     
-    --enum with rpcclient
+    --enum with rpcclient on a Null Session 
 
             $rpcclient -U "" x.x.x.x
             (NULL SESSION)
 
+            rpcclient $> enumdomusers
+            rpcclient $> enumdomgroups
+            rpcclient $> queryhroup {rid}  ---query Group Information and Group Membership
+
+
+        Before password spraying, it is very useful to determine the Windows domain password policy using a command such as “NET ACCOUNTS /DOMAIN” in the Windows world. 
+
+             rpcclient $>  getdompwinfo
+             
 
 
      Query 	                    Description
@@ -83,6 +96,8 @@ netsharegetinfo <share> 	Provides information about a specific share.
 enumdomusers 	            Enumerates all domain users.
 queryuser <RID> 	        Provides information about a specific user.
 
+
+    
 
 
 
@@ -109,5 +124,11 @@ queryuser <RID> 	        Provides information about a specific user.
             ----enum shares using crackmapexec
 
         $ crackmapexec smb x.x.x.x --shares -u '' -p '' (NULL Session)
+        $ crackmapexec SMB <IP> -u USER -p PASSWORD --spider C\$ --pattern txt
+
+        \\\List all readable files
+
+
+        crackmapexec smb 10.10.10.10 -u 'user' -p 'pass' -M spider_plus
 
     

@@ -25,7 +25,7 @@
 
 
                 
-                ---PowerShell Web Downloads (USING HTYP/HTTPS)
+                ---PowerShell Web Downloads (USING HTTP/HTTPS)
 
     
     Most companies allow HTTP and HTTPS outbound traffic through the firewall to allow employee productivity. 

