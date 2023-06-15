@@ -11,11 +11,32 @@
 
 
                  
+
+
+                 Service Principal Name
+
+        The Service Principal Name (SPN) is a unique identifier for a service instance. Active Directory Domain Services and Windows provide support for Service Principal Names (SPNs), which are key components of the Kerberos mechanism through which a client authenticates a service.
+
+        Important Points
+
+                If you install multiple instances of a service on computers throughout a forest, each instance must have its SPN. 
+                
+                Before the Kerberos authentication service can use an SPN to authenticate a service, the SPN must be registered on the account.
+                
+                A given SPN can be registered on only one account. 
+                
+                An SPN must be unique in the forest in which it is registered.
+                
+                If it is not unique, authentication will fail.
+
                  
-                 
-                 
-                 
-                                    
+                \\The SPN syntax has four elements 
+
+
+        serviceclass\hostname:port servicename
+
+
+        
                                  
                  
                  

