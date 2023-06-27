@@ -1,0 +1,7 @@
+virtual hard drives (vhd) can be mounted and act as a real hard drive
+
+sudo mkdir /media/backup_bitlocker /media/mount
+sudo losetup -P /dev/loop100 <your_file.vhd>
+sudo dislocker -v -V /dev/loop100p2 -u -- /media/backup_bitlocker
+sudo mount -o loop,rw /media/backup_bitlocker/dislocker-file /media/mount
+ls -la /media/mount
