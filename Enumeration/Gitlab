@@ -1,0 +1,59 @@
+
+
+
+        
+
+GitLab is a web-based Git-repository hosting tool that provides wiki capabilities, issue tracking, and continuous integration and deployment pipeline functionality. It is open-source and originally written in Ruby, but the current technology stack includes Go, Ruby on Rails, and Vue.js.
+
+
+
+During internal and external penetration tests, it is common to come across interesting data in a company's GitHub repo or a self-hosted GitLab or BitBucket instance. These Git repositories may just hold publicly available code such as scripts to interact with an API. However, we may also find scripts or configuration files that were accidentally committed containing cleartext secrets such as passwords that we may use to our advantage. We may also come across SSH private keys.We can attempt to use the search function to search for users, passwords, etc. Applications such as GitLab allow for public repositories (that require no authentication), internal repositories (available to authenticated users), and private repositories (restricted to specific users).It is also worth perusing any public repositories for sensitive data and, if the application allows, register an account and look to see if any interesting internal repositories are accessible. 
+
+
+If we can obtain user credentials from our OSINT, we may be able to log in to a GitLab instance. Two-factor authentication is disabled by default.
+
+        
+            --Footprinting & Discovery
+
+    We can quickly determine that GitLab is in use in an environment by just browsing to the GitLab URL, and we will be directed to the login page, which displays the GitLab logo.
+
+
+    The only way to footprint the GitLab version number in use is by browsing to the /help page when logged in
+
+    If we cannot register an account, we may have to try a low-risk exploit such as this.
+    (   https://www.exploit-db.com/exploits/49821   )
+
+    There have been a few serious exploits against GitLab 12.9.0 and GitLab 11.4.7 in the past few years as well as GitLab Community Edition 13.10.3, 13.9.3, and 13.10.2.
+
+
+            --Enumeration
+
+    The first thing we should try is browsing to /explore and see if there are any public projects that may contain something interesting
+
+    Suppose the organization did not set up GitLab only to allow company emails to register or require an admin to approve a new account. In that case, we may be able to access additional data.
+
+    We can also use the registration form to enumerate valid users (more on this in the next section). If we can make a list of valid users, we could attempt to guess weak passwords or possibly re-use credentials that we find from a password dump using a tool such as Dehashed 
+
+    On this particular instance of GitLab (and likely others), we can also enumerate emails. If we try to register with an email that has already been taken, we will get the error 1 error prohibited this user from being saved: Email has already been taken. As of the time of writing, this username enumeration technique works with the latest version of GitLab. Even if the Sign-up enabled checkbox is cleared within the settings page under Sign-up restrictions, we can still browse to the /users/sign_up page and enumerate users but will not be able to register a user.
+
+
+
+    In a real-world scenario, we may be able to find a considerable amount of sensitive data if we can register and gain access to any of their repositories. As this blog post explains, there is a considerable amount of data that we may be able to uncover on GitLab, GitHub, etc.
+
+
+
+            --Username Enumeration
+
+    
+    We can write one ourselves in Bash or Python or use this one (   https://www.exploit-db.com/exploits/49821) to enumerate a list of valid users. The Python3 version of this same tool can be found here. (  https://github.com/dpgg101/GitLabUserEnum/blob/main/gitlab_userenum.py  )
+
+    As with any type of password spraying attack, we should be mindful of account lockout and other kinds of interruptions. GitLab's defaults are set to 10 failed attempts resulting in an automatic unlock after 10 minutes. 
+
+
+
+            ---Authenticated Remote Code Execution    
+
+    
+    GitLab Community Edition version 13.10.2 and lower suffered from an authenticated remote code execution vulnerability due to an issue with ExifTool handling metadata in uploaded image files.
+
+    
