@@ -1,0 +1,92 @@
+
+
+        Thick client applications are the applications that are installed locally on our computers. Unlike thin client applications that run on a remote server and can be accessed through the web browser, these applications do not require internet access to run, and they perform better in processing power, memory, and storage capacity. Thick client applications are usually applications used in enterprise environments created to serve specific purposes. Such applications include project management systems, customer relationship management systems, inventory management tools, and other productivity software. These applications are usually developed using Java, C++, .NET, or Microsoft Silverlight.
+
+
+        In a .NET environment, a thick client, also known as a rich client or fat client, refers to an application that performs a significant amount of processing on the client side rather than relying solely on the server for all processing tasks. As a result, thick clients can provide a better performance, more features, and improved user experiences compared to their thin client counterparts, which rely heavily on the server for processing and data storage.
+
+
+        Some examples of thick client applications are web browsers, media players, chatting software, and video games. Some thick client applications are usually available to purchase or download for free through their official website or third-party application stores, while other custom applications that have been created for a specific company, can be delivered directly from the IT department that has developed the software. Deploying and maintaining thick client applications can be more difficult than thin client applications since patches and updates must be done locally to the user's computer. Some characteristics of thick client applications are:
+
+            Independent software.
+            Working without internet access.
+            Storing data locally.
+            Less secure.
+            Consuming more resources.
+            More expensive.
+
+
+        Since a large portion of thick client applications are downloaded from the internet, there is no sufficient way to ensure that users will download the official application, and that raises security concerns. Web-specific vulnerabilities like XSS, CSRF, and Clickjacking, do not apply to thick client applications. However, thick client applications are considered less secure than web applications with many attacks being applicable, including:
+
+            Improper Error Handling.
+            Hardcoded sensitive data.
+            DLL Hijacking.
+            Buffer Overflow.
+            SQL Injection.
+            Insecure Storage.
+            Session Management.
+
+
+
+
+                --Information Gathering
+
+
+        In this step, penetration testers have to identify the application architecture, the programming languages and frameworks that have been used, and understand how the application and the infrastructure work. They should also need to identify technologies that are used on the client and server sides and find entry points and user inputs. Testers should also look for identifying common vulnerabilities like the ones we mentioned earlier at the end of the About section. The following tools will help us gather information.
+			
+            CFF Explorer 	(   https://ntcore.com/?page_id=388   )
+            Detect It Easy 	(   https://github.com/horsicq/Detect-It-Easy  )
+            Process Monitor (    https://learn.microsoft.com/en-us/sysinternals/downloads/procmon  )
+            Strings     (  https://learn.microsoft.com/en-us/sysinternals/downloads/strings  )
+
+
+
+        --Client Side attacks
+
+        Although thick clients perform significant processing and data storage on the client side, they still communicate with servers for various tasks, such as data synchronization or accessing shared resources. This interaction with servers and other external systems can expose thick clients to vulnerabilities similar to those found in web applications, including command injection, weak access control, and SQL injection.
+
+        Using the proper tools, we can reverse-engineer and examine .NET and Java applications including EXE, DLL, JAR, CLASS, WAR, and other file formats. Dynamic analysis should also be performed in this step, as thick client applications store sensitive information in the memory as well.
+
+         			
+            Ghidra 	
+            IDA 	
+            OllyDbg 	
+            Radare2
+            dnSpy 	
+            x64dbg 	
+            JADX 	
+            Frida
+
+
+        --Network Side Attacks
+
+        If the application is communicating with a local or remote server, network traffic analysis will help us capture sensitive information that might be transferred through HTTP/HTTPS or TCP/UDP connection, and give us a better understanding of how that application is working. Penetration testers that are performing traffic analysis on thick client applications should be familiar with tools like:
+
+            Wireshark 	
+            tcpdump 	
+            TCPView 	
+            Burp Suite
+
+        
+
+
+            ---Retrieving hardcoded Credentials from Thick-Client Applications
+
+        
+        Exploring the NETLOGON share of the SMB service reveals RestartOracle-Service.exe among other files. Downloading the executable locally and running it through the command line, it seems like it does not run or it runs something hidden.
+
+        C:\Apps>.\Restart-OracleService.exe
+
+        Downloading the tool ProcMon64 from SysInternals and monitoring the process reveals that the executable indeed creates a temp file in C:\Users\Matt\AppData\Local\Temp.
+
+        Downloading the tool ProcMon64 from SysInternals and monitoring the process reveals that the executable indeed creates a temp file in C:\Users\Matt\AppData\Local\Temp.
+
+        In order to capture the files, it is required to change the permissions of the Temp folder to disallow file deletions. To do this, we right-click the folder C:\Users\Matt\AppData\Local\Temp and under Properties -> Security -> Advanced -> cybervaca -> Disable inheritance -> Convert inherited permissions into explicit permissions on this object -> Edit -> Show advanced permissions, we deselect the Delete subfolders and files, and Delete checkboxes.
+
+        Finally, we click OK -> Apply -> OK -> OK on the open windows. Once the folder permissions have been applied we simply run again the Restart-OracleService.exe and check the temp folder. The file 6F39.bat is created under the C:\Users\cybervaca\AppData\Local\Temp\2. The names of the generated files are random every time the service is running.
+
+
+
+        Thick client applications with a three-tier architecture have a security advantage over those with a two-tier architecture since it prevents the end-user from communicating directly with the database server. However, three-tier applications can be susceptible to web-specific attacks like SQL Injection and Path Traversal.
+
+        
