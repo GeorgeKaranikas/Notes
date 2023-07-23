@@ -51,3 +51,13 @@ PS C:\> New-PSDrive -Name "N" -Root "\\192.168.220.129\Finance" -PSProvider "Fil
 
 
     
+
+                    Search for a specific string in all files in a directory
+    ls directory\ -recurse | Select-String "string" | Select Path, LineNumber | Format-List
+
+
+
+		
+			-Ping sweep
+
+   PS> 1..254| % {"172.16.5.$($_) : $(Test-Connection -count 1 -comp 172.16.5.$($_) -quiet"} 
