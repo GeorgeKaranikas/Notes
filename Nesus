@@ -1,0 +1,126 @@
+
+
+                    ////NESSUS
+
+        
+
+        --Downloading  
+
+    
+    You can download from this page https://www.tenable.com/downloads/nessus?loginAttempted=true the Nesus  essesntials which is the free version
+
+    then you must request an activation code from  https://www.tenable.com/products/nessus/activation-code
+
+
+    -build the package 
+
+    $ dpkg -i Nessus-8.15.1-ubuntu910_amd64.deb
+
+    -start the nessus service
+
+    $ sudo systemctl start nessusd.service
+
+    -accessing nessus
+
+    you can navigate to https://localhost:8834 to interact with nessus
+
+
+
+        --Nessus Scan
+
+    
+    A new Nessus scan can be configured by clicking New Scan, and selecting a scan type.
+
+    Scan types:
+
+                Discovery
+                
+                - Host Discovery = basic scan to identify live hosts/open ports 
+
+
+                Vulnerabilities
+                
+                - Basic Network Scan  
+
+                Compliance
+
+    
+
+
+    -Host Discovery
+
+    
+        -Discovery section
+        
+        enable scanning for fragile devices. Scanning devices such as network printers often result in them printing out reams of paper with garbage text, leaving the devices unusable
+
+        In Port Scanning, we can choose whether to scan common ports, all ports, or a self-defined range, depending on our requirements
+
+        Within the Service Discovery subsection, the Probe all ports to find services option is selected by default.
+
+        
+        
+        -Assesment section
+
+
+        web application scanning can also be enabled if required, and a custom user agent and various other web application scanning options can be specified (e.g., a URL for Remote File Inclusion (RFI) testing)
+
+
+        If desired, Nessus can attempt to authenticate against discovered applications and services using provided credentials (if running a credentialed scan), or else can perform a brute-force attack with the provided username and password lists
+
+        User enumeration can also be performed using various techniques, such as RID Brute Forcing.If we opt to perform RID Brute Forcing, we can set the starting and ending UIDs for both domain and local user accounts
+
+
+        -Advanced section
+
+
+
+
+        -Scan Policies
+
+        these are customized scans that allow us to define specific scan options, save the policy configuration, and have them available to us under Scan Templates when creating a new scan.
+
+        -Creating a Scan Policy
+
+        click on the New Policy button in the top right, and we will be presented with the list of pre-configured scans. We can choose a scan, such as the Basic Network Scan, then customize it, or we can create our own. We will choose Advanced Scan to create a fully customized scan with no pre-configured recommendations built-in.
+
+        After choosing the scan type as our base, we can give the scan policy a name and a description if needed
+
+        Once we have finished customizing the scan, we can click on Save, and the newly created policy will appear in the polices list. From here on, when we go to create a new scan, there will be a new tab named User Defined under Scan Templates that will show all of our custom scan policies
+
+
+
+        -Plugins
+
+        https://www.tenable.com/plugins
+
+        Nessus works with plugins written in the Nessus Attack Scripting Language (NASL) and can target new vulnerabilities and CVEs.Plugins are rated by severity level: Critical, High, Medium, Low, Info
+
+
+        -Scanning with Credentials
+
+        Credentials can be configured for host-based authentication via SSH with a password, public key, certificate, or Kerberos-based authentication. It can also be configured for Windows host-based authentication with a password, Kerberos, LM hash, or NTLM hash
+
+        Nessus also supports authentication for a variety of databases
+
+        check the Nessus output to confirm whether the authentication to the target application or service with the supplied credentials was successful
+
+
+
+
+        -Mitigating Issues
+
+
+        Some firewalls will cause us to receive scan results showing either all ports open or no ports open. If this happens, a quick fix is often to configure an Advanced Scan and disable the Ping the remote host option
+
+        unless specifically requested, we should never perform Denial of Service checks. We can ensure that these types of plugins are not used by always enabling the "safe checks" option when performing scans to avoid any network plugins that can have a negative impact on a target,
+
+        It is also essential to keep in mind the potential impact of vulnerability scanning on a network, especially on low bandwidth or congested links. This can be measured using vnstat:
+
+        $ sudo apt install vnstat
+
+        $ sudo vnstat -l -i eth0
+
+        
+
+
