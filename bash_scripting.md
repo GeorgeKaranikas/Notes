@@ -482,3 +482,137 @@ Counter: 3
 Counter: 4
 ```
 
+# Case Statements
+
+Case statements are also known as switch-case statements in other languages, such as C/C++ and C#. The main difference between if-else and switch-case is that if-else constructs allow us to check any boolean expression, while switch-case always compares only the variable with the exact value.
+
+```
+case <expression> in
+	pattern_1 ) statements ;;
+	pattern_2 ) statements ;;
+	pattern_3 ) statements ;;
+esac
+```
+
+The definition of switch-case starts with case, followed by the variable or value as an expression, which is then compared in the pattern. If the variable or value matches the expression, then the statements are executed after the parenthesis and ended with a double semicolon (;;).
+
+```
+<SNIP>
+# Available options
+echo -e "Additional options available:"
+echo -e "\t1) Identify the corresponding network range of target domain."
+echo -e "\t2) Ping discovered hosts."
+echo -e "\t3) All checks."
+echo -e "\t*) Exit.\n"
+
+read -p "Select your option: " opt
+
+case $opt in
+	"1") network_range ;;
+	"2") ping_host ;;
+	"3") network_range && ping_host ;;
+	"*") exit 0 ;;
+esac
+<SNIP>
+```
+
+# Functions
+
+We combine several commands in a block between curly brackets ( { ... } ) and call them with a function name defined by us with functions. Once a function has been defined, it can be called and used again during the script.
+
+It is important to note that functions must always be defined logically before the first call since a script is also processed from top to bottom. Therefore the definition of a function is always at the beginning of the script. There are two methods to define the functions:
+
+- Method 1
+```
+function name {
+	<commands>
+}
+```
+
+- Method 2
+
+```
+name() {
+	<commands>
+}
+```
+
+### Parameter Passing
+
+Such functions should be designed so that they can be used with a fixed structure of the values or at least only with a fixed format. In principle, the same applies to the passed parameters as to parameters passed to a shell script. These are $1 - $9 (${n}), or $variable. Each function has its own set of parameters. So they do not collide with those of other functions or the parameters of the shell script.
+
+An important difference between bash scripts and other programming languages is that all defined variables are always processed globally unless otherwise declared by "local."
+```
+#!/bin/bash
+
+function print_pars {
+	echo $1 $2 $3
+}
+
+one="First parameter"
+two="Second parameter"
+three="Third parameter"
+
+print_pars "$one" "$two" "$three"
+```
+
+### Return Values
+
+
+When we start a new process, each child process (for example, a function in the executed script) returns a return code to the parent process (bash shell through which we executed the script) at its termination, informing it of the status of the execution. This information is used to determine whether the process ran successfully or whether specific errors occurred. Based on this information, the parent process can decide on further program flow.
+
+
+|Return Code 	|Description|
+|--------|----------|
+|1 	|General errors|
+|2 	|Misuse of shell builtins|
+|126 	|Command invoked cannot execute|
+|127 	|Command not found|
+|128 	|Invalid argument to exit|
+|128+n 	|Fatal error signal "n"|
+|130 	|Script terminated by Control-C|
+|255\* 	|Exit status out of range|
+
+
+To get the value of a function back, we can use several methods like return, echo, or a variable. In the next example, we will see how to use "$?" to read the "return code," how to pass the arguments to the function and how to assign the result to a variable.
+
+- Return.sh
+
+```
+#!/bin/bash
+
+function given_args {
+
+        if [ $# -lt 1 ]
+        then
+                echo -e "Number of arguments: $#"
+                return 1
+        else
+                echo -e "Number of arguments: $#"
+                return 0
+        fi
+}
+
+# No arguments given
+given_args
+echo -e "Function status code: $?\n"
+
+# One argument given
+given_args "argument"
+echo -e "Function status code: $?\n"
+
+# Pass the results of the funtion into a variable
+content=$(given_args "argument")
+
+echo -e "Content of the variable: \n\t$content"
+```
+
+
+# Debugging
+
+Bash allows us to debug our code by using the "-x" (xtrace) and "-v" options. 
+
+```
+$ bash -x script.sh
+```
+
