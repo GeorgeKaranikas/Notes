@@ -304,6 +304,9 @@ PS C:\htb> Get-AppLockerPolicy -Effective | select -ExpandProperty RuleCollectio
 PS C:\htb> Find-LAPSDelegatedGroups
 
 PS C:\htb> Find-AdmPwdExtendedRights
+
+PS C:\htb> Get-LAPSComputers
+
 ```
 ### Group3r 
 ```
