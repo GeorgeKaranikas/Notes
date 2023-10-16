@@ -106,6 +106,11 @@ PS C:\htb> Get-DomainUser * | Select-Object samaccountname,description |Where-Ob
 
 PS C:\htb> Get-NetLocalGroupMember -ComputerName ACADEMY-EA-MS01 -GroupName "Remote Management Users"
 
+! Custom Bloodhound query for the same task
+
+MATCH p1=shortestPath((u1:User)-[r1:MemberOf*1..]->(g1:Group)) MATCH p2=(u1)-[:CanPSRemote*1..]->(c:Computer) RETURN p21
+
+
 --Testing for Local Admin Access
 
 PS C:\htb> Test-AdminAccess -ComputerName ACADEMY-EA-MS01
@@ -232,6 +237,14 @@ PS C:\htb> $password = ConvertTo-SecureString "Klmcargo2" -AsPlainText -Force
 PS C:\htb> $cred = new-object System.Management.Automation.PSCredential ("INLANEFREIGHT\forend", $password)
 
 PS C:\htb> Enter-PSSession -ComputerName ACADEMY-EA-DB01 -Credential $cred
+
+!OR
+
+PS C:\htb> Register-PSSessionConfiguration -Name backupadmsess -RunAsCredential inlanefreight\backupadm
+
+PS C:\htb> Enter-PSSession -ComputerName DEV01 -Credential INLANEFREIGHT\backupadm -ConfigurationName  backupadmsess
+
+
 ```
 ```
 -available modules loaded for use
@@ -318,6 +331,16 @@ C:\htb> group3r.exe -f <filepath-name.log>
 ### Enumerating MSSQL Instances with PowerUpSQL
 
 ```
+- Bloodhound query for SQLADMINS
+
+MATCH p1=shortestPath((u1:User)-[r1:MemberOf*1..]->(g1:Group)) MATCH p2=(u1)-[:SQLAdmin*1..]->(c:Computer) RETURN p2
+
+```
+
+
+```
+
+
 PS C:\htb> cd .\PowerUpSQL\
 
 PS C:\htb>  Import-Module .\PowerUpSQL.ps1
@@ -325,7 +348,12 @@ PS C:\htb>  Import-Module .\PowerUpSQL.ps1
 PS C:\htb>  Get-SQLInstanceDomain
 
 ```
+```
+- authenticate to the  SQL server
 
+PS C:\htb>  Get-SQLQuery -Verbose -Instance "172.16.5.150,1433" -username "inlanefreight\damundsen" -password "SQL1234!" -query 'Select @@version'
+
+```
 ### Kerberoast
 ```
 --Finding Users With SPN Set (PowerView)
