@@ -1660,3 +1660,21 @@ $ ./username-anarchy -i /home/ltnbob/names.txt
 C:\Windows\system32> netsh.exe interface portproxy add v4tov4 listenport=8080 listenaddress=10.129.15.150 connectport=3389 connectaddress=172.16.5.25
 
 ```
+
+### Building directory tree for an assesment
+
+```
+$ mkdir -p ACME-IPT/{Admin,Deliverables,Evidence/{Findings,Scans/{Vuln,Service,Web,'AD Enumeration'},Notes,OSINT,Wireless,'Logging output','Misc Files'},Retest}
+```
+
+
+### tmux logging
+
+```
+$ tmux new -s setup
+
+$ cd ~/.tmux/plugins/tmux-logging/scripts && ./togle_logging.sh
+
+! files stored in home directory
+```
+
