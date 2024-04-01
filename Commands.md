@@ -948,6 +948,13 @@ C:\htb> REG QUERY HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\P
 ```
 PS C:\htb> findstr /SIM /C:"password" *.txt *.ini *.cfg *.config *.xml
 
+C:\Users\student\Desktop> find "password" "C:\Users\student\not-passwords.txt" 
+
+/// /N switch to display line numbers for us and the /I display to ignore case sensitivity
+
+/// /V  will show us any line that does not have the specified string
+
+
 -Chrome Dictionary Files
 
 PS C:\htb> gc 'C:\Users\htb-student\AppData\Local\Google\Chrome\User Data\Default\Custom Dictionary.txt' | Select-String password
@@ -1029,6 +1036,26 @@ REG QUERY HKLM /F "password" /t REG_SZ /S /d
 REG QUERY HKCU /F "password" /t REG_SZ /S /d
 
 ```
+
+### Search files and directories
+
+```
+/// Where command searches for binaries
+/// in PATH
+
+C:\Users\student\Desktop>where calc.exe
+
+C:\Windows\System32\calc.exe
+
+/// Recursive Where
+
+C:\Users\student\Desktop>where /R C:\Users\student\ bio.txt
+
+C:\Users\student\Desktop>where /R C:\Users\student\ *.csv
+
+```
+
+
 
 # Linux 
 
