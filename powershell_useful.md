@@ -51,16 +51,16 @@ PS C:\> New-PSDrive -Name "N" -Root "\\192.168.220.129\Finance" -PSProvider "Fil
 #  Search in smb with a pattern in filename
 
 ```
-    C:\htb>dir n:\*cred* /s /b
+C:\htb>dir n:\*cred* /s /b
 
-    Get-ChildItem -Recurse -Path N:\ -Include *cred* -File
+PS > Get-ChildItem -Recurse -Path N:\ -Include *cred* -File
 ```
 
 
 # Search for text patterns in smb files
 
 ```    
-    PS C:\htb> Get-ChildItem -Recurse -Path N:\ | Select-String "cred" -List
+PS C:\htb> Get-ChildItem -Recurse -Path N:\ | Select-String "cred" -List
 ```
 
     
@@ -68,12 +68,21 @@ PS C:\> New-PSDrive -Name "N" -Root "\\192.168.220.129\Finance" -PSProvider "Fil
 # Search for a specific string in all files in a directory
   
 ``` 
-    ls directory\ -recurse | Select-String "string" | Select Path, LineNumber | Format-List
+PS > ls directory\ -recurse | Select-String "string" | Select Path, LineNumber | Format-List
 ```
 
 
 		
 # Ping sweep
 ```
-   PS> 1..254| % {"172.16.5.$($_) : $(Test-Connection -count 1 -comp 172.16.5.$($_) -quiet"} 
+PS> 1..254| % {"172.16.5.$($_) : $(Test-Connection -count 1 -comp 172.16.5.$($_) -quiet"} 
 ```
+
+
+# PowerShell Base64 Encode & Decode
+
+```
+PS C:\htb> [Convert]::ToBase64String((Get-Content -path "C:\Windows\system32\drivers\etc\hosts" -Encoding byte))
+
+```
+

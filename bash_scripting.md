@@ -65,11 +65,11 @@ The advantage of bash scripts is that we can always pass up to 9 arguments (\$0-
 # Special Variables
 Special variables use the Internal Field Separator (IFS) to identify when an argument ends and the next begins. Bash provides various special variables that assist while scripting. Some of these variables are:
 
-- $# 	This variable holds the number of arguments passed to the script.
-- $@ 	This variable can be used to retrieve the list of command-line arguments.
-- $n 	Each command-line argument can be selectively retrieved using its position. For example, the first argument is found at $1.
-- \$$ 	The process ID of the currently executing process.
-- $? 	The exit status of the script. This variable is useful to determine a command's success. The value 0 represents successful execution, while 1 is a result of a failure.
+- $# 	:This variable holds the number of arguments passed to the script.
+- $@ 	:This variable can be used to retrieve the list of command-line arguments.
+- $n 	:Each command-line argument can be selectively retrieved using its position. For example, the first argument is found at $1.
+- \$$ 	:The process ID of the currently executing process.
+- $? 	:The exit status of the script. This variable is useful to determine a command's success. The value 0 represents successful execution, while 1 is a result of a failure.
 
 # Variables
 
@@ -85,7 +85,9 @@ $ variable = "this will result with an error."
 
 command not found: variable
  ```
+ ### The right way
 
+```$ variable="asdasdasd"```
 # Arrays
 
 There is also the possibility of assigning several values to a single variable in Bash. This can be beneficial if we want to scan multiple domains or IP addresses. These variables are called arrays that we can use to store and process an ordered sequence of specific type values. Arrays identify each stored entry with an index starting with 0. When we want to assign a value to an array component, we do so in the same way as with standard shell variables. All we do is specify the field index enclosed in square brackets. The declaration for arrays looks like this in Bash:

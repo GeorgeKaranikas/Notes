@@ -645,7 +645,12 @@ C:\htb> sqlcmd -S SRVMSSQL -U julio -P 'MyPassword!' -y 30 -Y 30
 - Basic Enumeration Commands
 ```
 - Prints the PC's Name
+
 >hostname
+
+- Enum Processes, services, etc.
+
+>tasklist
 
 -Patches and Hotfixes
 >wmic qfe get Caption,Description,HotFixID,InstalledOn
@@ -763,7 +768,11 @@ PS C:\htb> Get-WmiObject -Class Win32_Product |  select Name, Version
 
 -Display Running Processes
 
+PS > wmic /node:""<redacted>"" /user:""<redacted>"" /password:""<redacted>"" process list brief
+
 PS C:\htb> netstat -ano
+
+PS > wmic process <proc_id> get commandline
 
 -Logged-In Users
 
