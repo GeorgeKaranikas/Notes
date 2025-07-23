@@ -13,6 +13,18 @@ iptables is, usually,by default installed on most linux operating systems so its
 
 A chain is basically a set of rules and is a subset of tables.The three builtin chains are INPUT,OUTPUT and FORWARD in the filter table, which is the default table if no option set with **-t** .
 
+` -L [chain]` : Lists a chain in the specified table
+
+`-A [chain] ` :append a rule to the specified table with -t [table].
+
+`-C [chain]` : check a rule in the specified chain and table.
+
+`-D [chain]` : Delete a rule in the specified chain.
+
+`-F [chain]` : Flush all rules in the specified chain.
+
+
+
 - PREROUTING : traffic might be in the NIC and just arived in the machine.Present on nat,mangle and raw tables
 
 - INPUT : traffic inbound from outside to this host
@@ -134,7 +146,7 @@ You can flush all chains , tables and rules in order to reconfigure your firewal
 
 ### Step 1 
 
-- ensure you will not be locked out if you've accessed the hoxt remotely
+- ensure you will not be locked out if you've accessed the host remotely
 
 - -P : Change policy on chain to target
 
@@ -275,11 +287,26 @@ $ sudo iptables -A INPUT -p tcp -m tcp
 --dport 22 -m conntrack --ctstate NEW -m recent --set --name SSHLIMIT --update --seconds 180 --hitcount 5 --name SSH --rsource --jump DROP
 ```
 - --update : Check the source address and the "last seen" timestamp if it matches.
-
+   `!  the --set also counts as one additional hit if the list already exists. It does not reset the list. In other words, the --set nearly works like the --update except that it has the ability to create the list.`
 - --seconds [seconds] :
     This option must be used in conjunction with one of --rcheck or --update. When used, this will narrow the match to only happen when the address is in the list and was seen within the last given number of seconds. 
 - --hitcount [hits] :
     This option must be used in conjunction with one of --rcheck or --update. When used, this will narrow the match to only happen when the address is in the list and packets had been received greater than or equal to the given value. This option may be used along with --seconds to create an even narrower match requiring a certain number of hits within a specific time frame. ***MAX = 20***
+
+### Syn-flooding
+
+[post](https://linux.m2osw.com/create-rules-protect-you-syn-flood-attack)
+
+```
+$ iptables -A INPUT -m recent --rcheck --name synflood --seconds 60 --reap
+
+$ iptables -A INPUT -p tcp \              # chain / protocol
+    -m tcp --syn \                      # user is trying to connect with TCP?
+    -m recent --set --name synflood \   # create list or +1 hit
+    -m recent --rcheck --seconds 60 --hitcount 100 \
+    -j DROP                  # action if --rcheck true
+```
+
 # Port redirection
 
 ```
@@ -323,3 +350,38 @@ $ sudo iptables -A INPUT -p tcp -m tcp --dport 22 -j ssh-rules
 ```
 $sudo iptables -X ssh-rules
 ```
+
+
+# Examples 
+
+
+### Redirect public_iface:port1 -> localhost:port2
+
+```
+# enables forwarding output traffic from eth0 to 1234/tcp to 127.0.0.1:32400 tcp
+
+iptables -t nat -I PREROUTING -i eth0 -p tcp --dport 1234 -j DNAT --to 127.0.0.1:32400
+iptables -I FORWARD -i lo -p tcp -d 127.0.0.1 --dport 32400 -j ACCEPT
+
+# let the kernel accept public IPs accessing loopback interface
+echo 1 > /proc/sys/net/ipv4/conf/all/route_localnet
+echo 1 > /proc/sys/net/ipv4/conf/all/forwarding
+```
+
+
+# Defend NMAP scans
+
+! Some firewalls try to prevent incoming TCP connections (while allowing outbound ones) by blocking any TCP packets with the **SYN** bit set and **ACK** cleared. Iptables firewall command offers a special --syn option to implement it.
+
+
+
+#### Purpose of the scans
+
+Scan through stateless firewall or ACL filters as such filters are configured to block access to ports usually by preventing SYN packets, thus stopping any attempt to 'build' a connection.
+
+#### Disvantages
+
+One cannot distinguish an open port from a filtered port analyzing this scan results.
+
+`! Some systems ,like Windows and Cisco devices, send RST responses to the probes regardless of whether the port is open or not. This scan does work against most Unix-based systems though. `
+

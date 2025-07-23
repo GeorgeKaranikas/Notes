@@ -287,7 +287,12 @@ PS C:\htb> qwinsta
 -- RDP DisableRestrictedAdminMode  
 
 C:\htb> reg add HKLM\System\CurrentControlSet\Control\Lsa /t REG_DWORD /v DisableRestrictedAdmin /d 0x0 /f
+
+
+PS > Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -Name "LimitBlankPasswordUse" -Value "0"
 ```
+
+
 
 ```
 -Enable colorfull output in powershell and cmd
@@ -660,6 +665,12 @@ C:\htb> sqlcmd -S SRVMSSQL -U julio -P 'MyPassword!' -y 30 -Y 30
 
 -Find Domain Controller
 >set %logonserver%
+
+- Check dns cache
+
+PS> Get-DnsClientCache
+
+> ipconfig /displaydns
 
 ```
 ```
@@ -1542,7 +1553,7 @@ $ cat /etc/os-release
 
 --Kernel Version
 
-$ uanme -a
+$ uname -a
 $ cat /proc/version
 
 
@@ -1845,3 +1856,50 @@ $ cd ~/.tmux/plugins/tmux-logging/scripts && ./togle_logging.sh
 ! files stored in home directory
 ```
 
+
+# General
+
+## Openssl encryption and decryption
+
+### Generate key pairs
+
+```
+$ openssl genrsa -aes128 -out alice_private.pem 1024
+```
+
+- [genrsa](https://docs.openssl.org/1.0.2/man1/genrsa/#options)
+
+- `-aes128` :  These options encrypt the private key with specified cipher before outputting it. If none of these options is specified no encryption is used
+
+
+#### or
+
+```
+$ openssl genpkey -algorithm RSA -out key.pem  -pkeyopt rsa_keygen_bits:2048
+```
+
+#### ssh only usage
+
+```
+$ ssh-keygen
+```
+
+
+### Extract the puclic key from the private key
+
+```
+$ openssl rsa -in private.pem -pubout > public.pem
+```
+
+
+### Get Details from a key
+
+```
+$ openssl rsa -in private/public.pem -pubin -text -noout
+```
+
+### Decrypt files with private key
+
+```
+$ openssl rsautl -decrypt -inkey private.pem -in top_secret.enc > top_secret.txt
+```
