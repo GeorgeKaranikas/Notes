@@ -125,3 +125,25 @@ If TGS issue fails then you'll see Failure event with Failure Code field not equ
 
 Events with Failure Code “0x20” means that a TGS ticket has expired.
 
+
+
+# 4886 : Certificate Services received a certificate request 
+
+When the Certification Authority receives a certificate reqeuest it logs this event. 
+
+! This event event is only logged if "Issue and manage certificate requests" is enabled on the Audit tab of the CA's properties in Certificate Services MMC snap-in .which is desabled by default.
+
+### Description fields
+
+Request ID
+Requester
+Attributes
+Subject from CSR
+SAN from CSR
+Requested Template
+RequestOSVersion
+RequestCSPProvider
+RequestClientInfo
+Authentication Service
+Authentication Level
+DCOMorRPC
