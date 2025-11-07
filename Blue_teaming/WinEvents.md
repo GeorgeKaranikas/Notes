@@ -74,6 +74,12 @@ This event generates when an attempt is made to perform privileged operations on
 - If Subject\Security ID is not one of these well-known security principals: LOCAL SYSTEM, NETWORK SERVICE, LOCAL SERVICE ,the call is suspicious and needs investigation
 
 
+# 4688 : A new process has been created.
+
+
+
+
+
 # 4703 : A user right was adjusted 
 
 This event generates when token privileges were enabled or disabled for a specific accounts token
