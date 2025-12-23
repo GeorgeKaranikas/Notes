@@ -1,47 +1,77 @@
 
-            ----whois
+# WHOIS
 
-We can consider WHOIS as the "white pages" for domain names. It is a TCP-based transaction-oriented listening on TCP port 43 by default.
-We can use it for querying databases containing domain names, IP addresses, or autonomous systems and provide information services to Internet users.
+- designed to access databases that store information about registered internet resources
+- Identifying Key Personnel
+- Discovering Network Infrastructure
+    - Nameservers which can then find theyre IP`s
 
-The WHOIS domain lookups allow us to retrieve information about the domain name of an already registered domain. The Internet Corporation of Assigned Names and Numbers (ICANN) requires that accredited registrars enter the holder's contact information, the domain's creation, and expiration dates, and other information in the Whois database immediately after registering a domain. In simple terms, the Whois database is a searchable list of all domains currently registered worldwide.
+[whoisfreaks](https://whoisfreaks.com/)
 
-
-        $ whois {domain_name}
-
-
-
-
-            ----nslookup
-
-        $nslookup -query={record_type} {target}
+` $ whois domain.com`
 
 
+# DNS
 
-            -----passive subdomain enum
+### The road
 
-    --VirusTotal
-    -Search the domain name to relations in virustotal
+Cache -> Resolver -> Root Nameserver -> TLD Nameserver -> Authorative NS -> Resolver -> Browser
 
+### Local Cache
 
-    ---using certificates
-
-    -Another interesting source of information we can use to extract subdomains is SSL/TLS certificates. The main reason is Certificate Transparency (CT), a project that requires every SSL/TLS certificate issued by a Certificate Authority (CA) to be published in a publicly accessible log.
-
-
-     -examine CT logs to discover additional domain names and subdomains for a target organization using two primary resources:
-
-    https://censys.io
-
-    https://crt.sh
-
-    $ export TARGET="target.com"
-    $ curl -s "https://crt.sh/?q=${TARGET}&output=json" | jq -r '.[] | "\(.name_value)\n\(.common_name)"' | sort -u > "${TARGET}_crt.sh.txt"
+- Linux : `/etc/hosts`
+- Windows : `C:\Windows\System32\drivers\etc\hosts`
 
 
+### dnsenum
 
-    
-    ----TheHarvester
+`dnsenum --enum target.com -f /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt -r`
+
+### gobuster 
+
+`gobuster dns -d target.com   -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-20000.txt `
+
+
+# nslookup
+
+`$nslookup -query={record_type} {target}`
+
+
+# .well-known
+
+|URI Suffix 	|Description 	|Status |	Reference|
+|-------------|-------------------|-----|----------
+security.txt 	|Contains contact information for security researchers to report vulnerabilities. 	|Permanent |	RFC 9116|
+/.well-known/change-password |	Provides a standard URL for directing users to a password change page. 	|Provisional |	https://w3c.github.io/webappsec-change-password-url/#the-change-password-well-known-uri
+openid-configuration |	Defines configuration details for OpenID Connect, an identity layer on top of the OAuth 2.0 protocol. 	|Permanent |	http://openid.net/specs/openid-connect-discovery-1_0.html
+assetlinks.json |	Used for verifying ownership of digital assets (e.g., apps) associated with a domain. 	|Permanent |	https://github.com/google/digitalassetlinks/blob/master/well-known/specification.md
+mta-sts.txt| 	Specifies the policy for SMTP MTA Strict Transport Security (MTA-STS) to enhance email security. 	|Permanent 	|RFC 8461
+
+
+# passive subdomain enum
+
+### VirusTotal
+Search the domain name to relations in virustotal
+
+
+### using certificates
+
+Another interesting source of information we can use to extract subdomains is SSL/TLS certificates. The main reason is Certificate Transparency (CT), a project that requires every SSL/TLS certificate issued by a Certificate Authority (CA) to be published in a publicly accessible log.
+
+#### Cerfificate Transparency Logs
+examine CT logs to discover additional domain names and subdomains for a target organization using two primary resources:
+
+`https://censys.io`
+
+`https://crt.sh`
+
+```
+$ export TARGET="target.com"
+$ curl -s "https://crt.sh/?q=${TARGET}&output=json" | jq -r '.[] | "\(.name_value)\n\(.common_name)"' | sort -u > "${TARGET}_crt.sh.txt"
+```
+
+
+# TheHarvester
 
     $ cat sources.txt
 
@@ -59,10 +89,10 @@ The WHOIS domain lookups allow us to retrieve information about the domain name 
         vhost
         virustotal
 
-
+```
     $ export TARGET="facebook.com"
     $ cat sources.txt | while read source; do theHarvester -d "${TARGET}" -b $source -f "${source}_${TARGET}";done
-
+```
     --extract the subdomain
     $ cat *.json | jq -r '.hosts[]' 2>/dev/null | cut -d':' -f 1 | sort -u > "${TARGET}_theHarvester.txt"
 

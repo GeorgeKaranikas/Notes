@@ -1,3 +1,5 @@
+        
+        
         ----HTTP Headers
 
 
@@ -61,75 +63,100 @@
 
     
 
-            -----gobuster
-    -using gobuster to brute subdomains based on a pattern that was found
-    -launch gobuster using the dns module, specifying the following options:
+# gobuster
+- using gobuster to brute subdomains based on a pattern that was found
+- launch gobuster using the dns module, specifying the following options:
 
-    dns: Launch the DNS module
-    -q: Don't print the banner and other noise.
-    -r: Use custom DNS server
-    -d: A target domain name
-    -p: Path to the patterns file
-    -w: Path to the wordlist
-    -o: Output file
+#### dns: Launch the DNS module
+- q: Don't print the banner and other noise.
+- r: Use custom DNS server
+- d: A target domain name
+- p: Path to the patterns file
+- w: Path to the wordlist
+- o: Output file
 
-
+```
     $ export TARGET="facebook.com"
     $ export NS="d.ns.facebook.com"
     $ export WORDLIST="numbers.txt"
     $ gobuster dns -q -r "${NS}" -d "${TARGET}" -w "${WORDLIST}" -p ./patterns.txt -o "gobuster_${TARGET}.txt"
+```
 
 
+# vhosts
 
+A virtual host (vHost) is a feature that allows several websites to be hosted on a single server. This is an excellent solution if you have many websites and don't want to go through the time-consuming (and expensive) process of setting up a new web server for each one. Imagine having to set up a different webserver for a mobile and desktop version of the same page. There are two ways to configure virtual hosts:
 
-            ----vhosts
-
-    A virtual host (vHost) is a feature that allows several websites to be hosted on a single server. This is an excellent solution if you have many websites and don't want to go through the time-consuming (and expensive) process of setting up a new web server for each one. Imagine having to set up a different webserver for a mobile and desktop version of the same page. There are two ways to configure virtual hosts:
-
-    IP-based virtual hosting
-    Name-based virtual hostin
+- IP-based virtual hosting
+- Name-based virtual hostin
 
     
-    -IP-based Virtual Hosting
+#### IP-based Virtual Hosting
 
-    For this type, a host can have multiple network interfaces. Multiple IP addresses, or interface aliases, can be configured on each network interface of a host. The servers or virtual servers running on the host can bind to one or more IP addresses. This means that different servers can be addressed under different IP addresses on this host. From the client's point of view, the servers are independent of each other.
+For this type, a host can have multiple network interfaces. Multiple IP addresses, or interface aliases, can be configured on each network interface of a host. The servers or virtual servers running on the host can bind to one or more IP addresses. This means that different servers can be addressed under different IP addresses on this host. From the client's point of view, the servers are independent of each other.
 
-    -Name-based Virtual Hosting
+#### Name-based Virtual Hosting
 
-    The distinction for which domain the service was requested is made at the application level. For example, several domain names, such as admin.inlanefreight.htb and backup.inlanefreight.htb, can refer to the same IP. Internally on the server, these are separated and distinguished using different folders. Using this example, on a Linux server, the vHost admin.inlanefreight.htb could point to the folder /var/www/admin. For backup.inlanefreight.htb the folder name would then be adapted and could look something like /var/www/backup.
-
-
-    -we can fuzz with ffuf
-
-    We can match or filter responses based on different options. The web server responds with a default and static website every time we issue an invalid virtual host in the HOST header. We can use the filter by size -fs option to discard the default response as it will always have the same size.
+The distinction for which domain the service was requested is made at the application level. For example, several domain names, such as admin.inlanefreight.htb and backup.inlanefreight.htb, can refer to the same IP. Internally on the server, these are separated and distinguished using different folders. Using this example, on a Linux server, the vHost admin.inlanefreight.htb could point to the folder /var/www/admin. For backup.inlanefreight.htb the folder name would then be adapted and could look something like /var/www/backup.
 
 
-    $ ffuf -w ./vhosts -u http://192.168.10.10 -H "HOST: FUZZ.randomtarget.com" -fs 612
+#### fuzz with ffuf
+
+- filter responses based on different size with -fs option
+
+`$ ffuf -w ./vhosts -u http://192.168.10.10 -H "HOST: FUZZ.randomtarget.com" -fs 612`
 
 
-    -w: Path to our wordlist
-    -u: URL we want to fuzz
-    -H "HOST: FUZZ.randomtarget.com": This is the HOST Header, and the word FUZZ will be used as the fuzzing point.
-    -fs 612: Filter responses with a size of 612, default response size in this case.
 
+# String searching 
+we can find intresting words in in a web app using cewl ("cool")
 
-     ---we can find intresting words in in a web app using cewl ("cool")
-
-     $ cewl -m5 --lowercase -w wordlist.txt http://x.x.x.x
+`$ cewl -m5 --lowercase -w wordlist.txt http://x.x.x.x`
 
      -m :word minimun length 
      -w : output file
      --lowercase : lowercase letters only
      
 
-     --u can feed this wordlist to fuff
+#### u can feed this wordlist to fuff
 
-     $ ffuf -w ./folders.txt:FOLDERS,./wordlist.txt:WORDLIST,./extensions.txt:EXTENSIONS -u http://192.168.10.10/FOLDERS/WORDLISTEXTENSIONS
-
-
-    -w: We separate the wordlists by coma and add an alias to them to inject them as fuzzing points later
-    -u: Our target URL with the fuzzing points.
+`$ ffuf -w ./folders.txt:FOLDERS,./wordlist.txt:WORDLIST,./extensions.txt:EXTENSIONS -u http://192.168.10.10/FOLDERS/WORDLISTEXTENSIONS`
 
 
-        folders could be something like wp-* etc.
+- w: We separate the wordlists by coma and add an alias to them to inject them as fuzzing points later
+- u: Our target URL with the fuzzing points.
+
+
+
         
+# Web Spidering
+
+
+```
+$ pip3 install scrapy
+
+$ wget -O ReconSpider.zip https://academy.hackthebox.com/storage/modules/144/ReconSpider.v1.2.zip
+$ unzip ReconSpider.zip
+
+$ python3 ReconSpider.py http://inlanefreight.com
+```
+
+
+# Reconnaissance Frameworks
+
+- [FinalRecon](https://github.com/thewhiteh4t/FinalRecon)
+- [Recon-ng](https://github.com/lanmaster53/recon-ng)
+- [theHarvester](https://github.com/laramies/theHarvester)
+- [SpiderFoot](https://github.com/smicallef/spiderfoot)
+- [OSINTFramework](https://osintframework.com/)
+
+#### FinalRecon
+
+```
+$ git clone https://github.com/thewhiteh4t/FinalRecon.git
+$ cd FinalRecon
+$ pip3 install -r requirements.txt
+$ chmod +x ./finalrecon.py
+$ ./finalrecon.py --help
+```
+
