@@ -54,6 +54,18 @@ $ source venv/bin/activate
 # Python Tricks
 
 
+## urllib vs requests/urllib3
+
+- You can try adding an extra `\` when injecting in a string to escape the already existand one.
+
+```python
+>>> urllib.parse.urlparse('http://google.com\@python.com').hostname
+'python.com'
+
+>>>requests.get('http://google.com\@python.com') # fetches google.com
+```
+
+
 ## os.path.join(path, / , *paths)
 
 - Returns a concatenation of path with paths.
@@ -64,6 +76,11 @@ $ source venv/bin/activate
 ```python
 >>>os.path.join('/home/','/etc/passwd/')
 /etc/passwd
+```
+
+```python
+>>> os.path.join('http://127.0.0.1:8000','http://attacker.com')
+http://attacker.com
 ```
 
 - Purepath.joinpath has a similar functionality
@@ -97,6 +114,22 @@ with open(file, "r") as f:
 "http://www.attacker.com/a"
 ```
 
+## urllib.parse.urlsplit vs urllib.request.urlretrieve
+
+- urlretrive supports an odd URL format : `<URL:scheme://host:port?/path?>`
+- Attackers can bypass scheme blacklisting when these two methods used inline
+
+```python
+>>> urllib.parse.urlsplit("<URL:http://www.google.com>")
+SplitResult(scheme='', netloc='', path='<URL:http://www.google.com>', query='', fragment='')
+```
+
+```python
+>>> a,b = urllib.request.urlretrieve("<URL:http://google.com>")
+>>> b
+<http.client.HTTPMessage object at 0x7f9426cc7d90>
+```
+
 ## String encoding
 
 [pydocs](https://docs.python.org/3/howto/unicode.html)
@@ -118,4 +151,16 @@ with open(file, "r") as f:
 '\u0394'
 ```
 
+#### Abusing IDNA Standard
 
+
+
+```python
+>> "ß".toLowerCase()
+"ß"
+>> "ß".toUpperCase()
+"SS"
+>> ["ss", "SS"].indexOf("ß")
+false
+>> location.href = "http://wordpreß.com"
+```
