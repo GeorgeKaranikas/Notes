@@ -46,6 +46,11 @@ A Guide for Digital Investigators: Appendix](https://digitalforensics.ch/linux/p
 $ python3 vol.py -q -f memdump.mem linux.sockstat.Sockstat | grep TCP
 ```
 
+### Velociraptor
+
+```bash
+$ cat /dir/collection/results/Linux.Network.NetstatEnriched.json  | jq .
+```
 
 
 # Linux Processes
