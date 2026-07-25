@@ -1859,11 +1859,24 @@ $ cd ~/.tmux/plugins/tmux-logging/scripts && ./togle_logging.sh
 
 # General
 
+
+## Encodings 
+
+### Bash URL-Decoding
+
+#### Using python3 binary
+
+```bash
+echo -n "%22" | python3 -c "import sys; from urllib.parse import unquote; print(unquote(sys.stdin.read()));"
+```
+
+
+
 ## Openssl encryption and decryption
 
 ### Generate key pairs
 
-```
+```bash
 $ openssl genrsa -aes128 -out alice_private.pem 1024
 ```
 
@@ -1874,32 +1887,32 @@ $ openssl genrsa -aes128 -out alice_private.pem 1024
 
 #### or
 
-```
+```bash
 $ openssl genpkey -algorithm RSA -out key.pem  -pkeyopt rsa_keygen_bits:2048
 ```
 
 #### ssh only usage
 
-```
+```bash
 $ ssh-keygen
 ```
 
 
 ### Extract the puclic key from the private key
 
-```
+```bash
 $ openssl rsa -in private.pem -pubout > public.pem
 ```
 
 
 ### Get Details from a key
 
-```
+```bash
 $ openssl rsa -in private/public.pem -pubin -text -noout
 ```
 
 ### Decrypt files with private key
 
-```
+```bash
 $ openssl rsautl -decrypt -inkey private.pem -in top_secret.enc > top_secret.txt
 ```

