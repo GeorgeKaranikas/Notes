@@ -152,3 +152,136 @@ implementation.
 
 The internet header padding is used to ensure that the internet
 header ends on a 32 bit boundary.  The padding is zero.
+
+
+
+
+# IPv6 Header
+
+-  header length is fixed size 40 bytes, comparing to the variable length size of the IPv4 header
+
+
+```
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |Version|  Traffic Class|          Flow Label                   |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |         Destination                                           |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |        Address                                                |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Destination Address                        |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+
+### Version : 4 bits
+
+- In contrast to IPv4 , here its eq to 6 (0x0110)
+
+### Traffic Class : 8 bits
+
+- Similar concept as the Type of Service field in the IPv4 header, its the identifier of the packet’s class or priority
+
+
+### Flow Label : 20 bits
+
+-  indicates to intermediate devices that a packet belongs to a specific sequence of packets between a source and a destination
+
+
+### Payload Length : 16 bits
+
+- the length in bytes of the data portion of a packet including any IPv6 Extension headers ( does not include the main IPv6 header)
+
+### Next Header : 8 bits
+
+- either the type of the first extension header (if any) or the upper-layer protocol in the payload such as TCP, UDP, or ICMPv6
+
+- similar to the IPv4 Protocol field
+
+- When indicating an upper-layer protocol, the IPv6 Next Header field uses the same values that are used in the IPv4 Protocol.
+
+|Next Header value (in hex) 	|Description|
+|----------------------------|------------|
+6 	|Transmission Control Protocol (TCP)
+11 |	User Datagram Protocol (UDP)
+2F |	Generic Routing Encapsulation (GRE)
+32 |	Encapsulating Security Payload (ESP)
+3A |	Internet Control Message Protocol version 6 (ICMPv6)
+3B |	No Next Header for IPv6
+59 	|Open Shortest Path First (OSPF)
+
+
+### Hop Limit : 8 bits
+
+- Basically ttl field
+
+### Source Address : 128 bits
+
+### Destination Address : 128 bits
+
+
+## Example addresses
+
+
+- Example 1 - The match-all address
+```
+IPv6 address - 0000:0000:0000:0000:0000:0000:0000:0000
+Shortened - ::
+```
+
+- Example 2 - The loopback address
+```
+IPv6 address - 0000:0000:0000:0000:0000:0000:0000:0001
+Shortened - ::1
+```
+
+- Example 3 - The all-nodes address
+-  This is the v6 alternative to the well-known 224.0.0.1 in IPv4
+```
+IPv6 address - ff02:0000:0000:0000:0000:0000:0000:0001
+Shortened - ff02::1
+```
+
+## IPv6 Address Types
+
+### Unicast:  is one-to-one communication
+- At present, all global unicast addresses start with binary value 001 (2000::/3)
+
+- Link local is a special type of unicast address that is auto-configured on any interface using a combination of the link-local prefix FE80::/10
+   - a local unicast address automatically assigned to every network interface enabled for IPv6
+   - valid only for communications on a local link
+
+
+- Embedded IPv4-in-IPv6
+   - has only zeros in the first 96-bits of the address and an IPv4 address in the rightmost 32-bits
+   - Examples :    `0:0:0:0:0:0:A:B:C:D` , `::A:B:C:D`
+
+
+### Multicast: one-to-many communication
+
+- distinguished from all other types by the value of the leftmost 8 bits of the addresses: a value of 11111111 (hex digits FF)
+
+- all multicast addresses are part of the prefix ff00::/8, which is equivalent to the IPv4 multicast address space of 224.0.0.0/4.
+
+
+
+### Anycast
+- delivered to the "closest" interface identified by that address
+
+- Anycast addresses are allocated from the unicast address space, therefore they are indistinguishable from global unicast addresses. 
+
+

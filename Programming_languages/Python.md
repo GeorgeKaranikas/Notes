@@ -9,6 +9,19 @@
 $ python3 -m venv venv-name/   --system-site-packages
 ```
 
+- Select python version:
+```bash
+$ virtualenv -p python3.14 venv
+
+$ virtualenv -p 3.10 venv
+
+$ virtualenv -p pypy3 venv
+
+$ virtualenv -p rustpython venv
+
+#Specify the full path to a Python interpreter:
+$ virtualenv -p /usr/bin/python3.9 venv
+```
 
 - Activate the venv (being in the folder venv-name/ is created)
 
@@ -304,6 +317,19 @@ class RequestHandler(BaseHTTPRequestHandler):
 </script>
 ```
 
+# json vs ujson desyncs
+
+- ujson library [versions < 5.4.0](https://github.com/ultrajson/ultrajson/security/advisories/GHSA-wpqr-jcpx-745r) will truncate ilegall utf-8 high surrogates ,while json standard library will not
+- json data passed from these two different parsers in pipelined application logic are [possible desync](https://bishopfox.com/blog/json-interoperability-vulnerabilities) targets.
+
+
+```python
+>>> json.loads('{"role":"user","role\\ud800":"admin"}')
+{'role': 'user', 'role\ud800': 'admin'}
+>>> ujson.loads('{"role":"user","role\\ud800":"admin"}')
+{'role': 'admin'}
+```
+
 
 # .pyc files 
 
@@ -439,7 +465,7 @@ $echo 'import os;os.system("whoami>/tmp/x")' > .local/lib/python3.10/site-packag
 
 
 
-# Utilitys
+# Utilities
 
 
 ## Polyglots
@@ -470,3 +496,78 @@ $echo 'import os;os.system("whoami>/tmp/x")' > .local/lib/python3.10/site-packag
     pdf.image('./doyensec.jpg')
     pdf.output('payload.pdf', 'F')
 ```
+
+
+
+# flask.send_file() Race Condition
+
+
+- Flask is a wrapper around werkzeug , so the actual send_file() code resides in werkzeugs code base.
+- There is a race condition that came up in a recent [ctf challenge in l3akctf26](https://github.com/L3AK-TEAM/L3akCTF2026-public/blob/main/web/squid/build/app/public_app.py#L274) , that requires to take  advantage of it to read a dynamically generated file from /proc filesystem.
+- The problem was that the `os.stat(file)` in dynamically generated files return zero size , resulting in the server sending back content-length: 0 and zero bytes in the body.
+
+- [Werkzeug code](https://github.com/pallets/werkzeug/blob/main/src/werkzeug/utils.py#L438):
+
+```python
+
+def send_file(
+    path_or_file: os.PathLike[str] | str | t.IO[bytes],
+    ...
+) -> Response:
+
+    # snip.......
+
+    if isinstance(path_or_file, (os.PathLike, str)) or hasattr(
+        path_or_file, "__fspath__"
+    ):
+        path_or_file = t.cast("os.PathLike[str] | str", path_or_file)
+
+        # Flask will pass app.root_path, allowing its send_file wrapper
+        # to not have to deal with paths.
+        if _root_path is not None:
+            path = os.path.join(_root_path, path_or_file)
+        else:
+            path = os.path.abspath(path_or_file)
+        # We land here and instantiate size variable which is 0 for /proc/... files
+        stat = os.stat(path)
+        size = stat.st_size
+        mtime = stat.st_mtime
+    else:
+        file = path_or_file
+
+    # some 20 and more lines of code in between ... 
+
+
+    if use_x_sendfile and path is not None:
+        headers["X-Sendfile"] = path
+        data = None
+    else:
+        if file is None:
+            file = open(path, "rb")  # file is opened based on path, no matter the sie variable
+        elif isinstance(file, io.BytesIO):
+            size = file.getbuffer().nbytes
+        elif isinstance(file, io.TextIOBase):
+            raise ValueError("Files must be opened in binary mode or use BytesIO.")
+
+        data = wrap_file(environ, file)
+
+    rv = response_class(
+        data, mimetype=mimetype, headers=headers, direct_passthrough=True
+    )
+
+    if size is not None:
+        rv.content_length = size
+
+    # Lots of lines also here snipped, non of them actually braking till it returns rv: Response type
+
+    return rv
+
+```
+
+- The gadget [here](https://jorianwoltjer.com/blog/p/ctf/l3akctf-2026-squid#flask-send_file-size-race-condition) is using `/proc/self/fd/<n>` files
+- These are file descriptor symlinks to the opened files by the application
+    - When an application opens a file descriptor, a symlink to that file is created and stored in this directory, which points to the actual file.
+    - The caveat is that when the file is closed the fd is reused , so the same symlink file will point to another newlly opened file descriptor.
+-  If we had pointed a send_file() at `/proc/self/fd/3` with the correct timing, it could read the size of `/etc/passwd` with the content of `/proc/{pid}/environ`!
+    - This basically means fuzz the app with requests pointing to the 'size' file we choose and the actual file we want to read (with file size 0), and in between throw file reads to the file descriptor(`/proc/self/fd/<num>`) to actually retrieve the contents.
+

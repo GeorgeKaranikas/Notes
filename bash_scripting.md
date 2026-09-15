@@ -62,7 +62,9 @@ fi
 # Arguments
 
 The advantage of bash scripts is that we can always pass up to 9 arguments (\$0-\$9) to the script without assigning them to variables or setting the corresponding requirements for these. 9 arguments because the first argument \$0 is reserved for the script. As we can see here, we need the dollar sign ($) before the name of the variable to use it at the specified position. 
+
 # Special Variables
+
 Special variables use the Internal Field Separator (IFS) to identify when an argument ends and the next begins. Bash provides various special variables that assist while scripting. Some of these variables are:
 
 - $# 	:This variable holds the number of arguments passed to the script.
@@ -74,24 +76,47 @@ Special variables use the Internal Field Separator (IFS) to identify when an arg
 # Variables
 
 
- The assignment of variables takes place without the dollar sign ($). The dollar sign is only intended to allow this variable's corresponding value to be used in other code sections. When assigning variables, there must be no spaces between the names and values.
-
- In contrast to other programming languages, there is no direct differentiation and recognition between the types of variables in Bash like "strings," "integers," and "boolean." All contents of the variables are treated as string characters. Bash enables arithmetic functions depending on whether only numbers are assigned or not. It is important to note when declaring variables that they do not contain a space. Otherwise, the actual variable name will be interpreted as an internal function or a command.
+- The assignment of variables takes place without the dollar sign ($). 
+	- The dollar sign is only intended to allow this variable's corresponding value to be used in other code sections. 
+- When assigning variables, there must be no spaces between the names and values.
+- In contrast to other programming languages, there is no direct differentiation and recognition between the types of variables in Bash like "strings," "integers," and "boolean." 
+	- All contents of the variables are treated as string characters. 
+- Bash enables arithmetic functions depending on whether only numbers are assigned or not. 
+- It is important to note when declaring variables that they do not contain a space, Otherwise, the actual variable name will be interpreted as an internal function or a command.
 
  ### Declaring a Variable - Error
 
- ```
+ ```bash
 $ variable = "this will result with an error."
 
 command not found: variable
  ```
  ### The right way
 
-```$ variable="asdasdasd"```
+```bash
+$ variable="asdasdasd"
+```
+
+# Environmental Variables
+
+- Variables that exist throughout a particular shell session
+- Their names are usually capitalized
+- To read an environmental variable, we put a dollar sign ($) like a regular variable:
+```bash
+echo $PATH
+```
+
+- To create or modify an environmental variable, we use the export command:
+```bash
+$ export NEW_VARIABLE="Hello World"
+```
+- This environment variable will be available throughout the current shell session and can be read by other programs
+
 # Arrays
 
 There is also the possibility of assigning several values to a single variable in Bash. This can be beneficial if we want to scan multiple domains or IP addresses. These variables are called arrays that we can use to store and process an ordered sequence of specific type values. Arrays identify each stored entry with an index starting with 0. When we want to assign a value to an array component, we do so in the same way as with standard shell variables. All we do is specify the field index enclosed in square brackets. The declaration for arrays looks like this in Bash:
-```
+
+```bash
 #!/bin/bash
 
 domains=(www.inlanefreight.com ftp.inlanefreight.com vpn.inlanefreight.com www2.inlanefreight.com)
@@ -104,7 +129,7 @@ We can also retrieve them individually using the index using the variable with t
 
 It is important to note that single quotes (' ... ') and double quotes (" ... ") prevent the separation by a space of the individual values in the array. This means that all spaces between the single and double quotes are ignored and handled as a single value assigned to the array.
 
-```
+```bash
 #!/bin/bash
 
 domains=("www.inlanefreight.com ftp.inlanefreight.com vpn.inlanefreight.com" www2.inlanefreight.com)
@@ -130,12 +155,12 @@ To compare specific values with each other, we need elements that are called com
 
 ### String Operators
 
-- == 	is equal to
-- != 	is not equal to
-- < 	is less than in ASCII alphabetical order
-- \> 	is greater than in ASCII alphabetical order
-- -z 	if the string is empty (null)
-- -n 	if the string is not null
+- `==` 	is equal to
+- `!= `	is not equal to
+- `< `	is less than in ASCII alphabetical order
+- `\>` 	is greater than in ASCII alphabetical order
+- `-z` 	if the string is empty (null)
+- `-n` 	if the string is not null
 
 
 
@@ -143,7 +168,7 @@ To compare specific values with each other, we need elements that are called com
 It is important to note here that we put the variable for the given argument ($1) in double-quotes ("$1"). This tells Bash that the content of the variable should be handled as a string. Otherwise, we would get an error.
 
 
-```
+```bash
 if [ "$1" != "HackTheBox" ]
 ```
 
@@ -163,7 +188,7 @@ Comparing integer numbers can be very useful for us if we know what values we wa
 | -ge 	|is greater than or equal to
 
 
-```
+```bash
 #!/bin/bash
 
 # Check the given arguments
@@ -202,7 +227,7 @@ fi
 | -x       | tests if the file has execute permission               |
 
 
-```
+```bash
 #!/bin/bash
 
 # Check if the specified file exists
@@ -223,7 +248,7 @@ fi
 
 We get a boolean value "false" or "true" as a result with logical operators. Bash gives us the possibility to compare strings by using double square brackets [[ <condition> ]]. To get these boolean values, we can use the string operators. Whether the comparison matches or not, we get the boolean value "false" or "true".
 
-```
+```bash
 #!/bin/bash
 
 # Check the boolean value
@@ -254,7 +279,7 @@ With logical operators, we can define several conditions within one. This means 
 |&& |	logical AND|
 | \|\| 	|logical OR|
 
-```
+```bash
 #!/bin/bash
 
 # Check if the specified file exists and if we have read permissions
@@ -333,15 +358,15 @@ Decrease Variable: 0
 
 We can also calculate the length of the variable. Using this function ${#variable}, every character gets counted, and we get the total number of characters in the variable.
 
-~~~
+```bash
 #!/bin/bash
 
 htb="HackTheBox"
 
 echo ${#htb}
-~~~
-
 ```
+
+```bash
 $ ./VarLength.sh
 
 10
@@ -350,7 +375,7 @@ $ ./VarLength.sh
 
 # Input Control
 
-```
+```bash
 # Available options
 <SNIP>
 echo -e "Additional options available:"
@@ -377,7 +402,7 @@ The first echo lines serve as a display menu for the options available to us. Wi
 . If our scripts become more complicated later, they can take much more time than just a few seconds. To avoid sitting inactively and waiting for our script's results, we can use the tee utility. It ensures that we see the results we get immediately and that they are stored in the corresponding files.
 
 
-```
+```bash
 # Identify Network range for the specified IP address(es)
 function network_range {
 	for ip in $ipaddr
@@ -406,34 +431,34 @@ When using tee, we transfer the received output and use the pipe (|) to forward 
 
  Each control structure is either a branch or a loop. Logical expressions of boolean values usually control the execution of a control structure. These control structures include:
 
--    Branches:
-        - If-Else Conditions
-        - Case Statements
+- Branches:
+	- If-Else Conditions
+	- Case Statements
 
--    Loops:
-        - For Loops
-        - While Loops
-        - Until Loops
+- Loops:
+	- For Loops
+	- While Loops
+	- Until Loops
 
 
 ### For Loops
 
 The For loop is executed on each pass for precisely one parameter, which the shell takes from a list, calculates from an increment, or takes from another data source. The for loop runs as long as it finds corresponding data. This type of loop can be structured and defined in different ways. For example, the for loops are often used when we need to work with many different values from an array. This can be used to scan different hosts or ports. We can also use it to execute specific commands for known ports and their services to speed up our enumeration process.
 
-```
+```bash
 for variable in 1 2 3 4
 do
 	echo $variable
 done
 ```
 
-```
+```bash
 for variable in file1 file2 file3
 do
 	echo $variable
 done
 ```
-```
+```bash
 for ip in "10.10.10.170 10.10.10.174 10.10.10.175"
 do
 	ping -c 1 $ip
@@ -441,7 +466,7 @@ done
 ```
 
 
-```
+```bash
 #oneliners
 $ for ip in 10.10.10.170 10.10.10.174;do ping -c 1 $ip;done
 ```
@@ -454,7 +479,7 @@ The while loop is conceptually simple and follows the following principle:
 
 The while loops also work with conditions like if-else. A while loop needs some sort of a counter to orientate itself when it has to stop executing the commands it contains. Otherwise, this leads to an endless loop. Such a counter can be a variable that we have declared with a specific value or a boolean value. While loops run while the boolean value is "True". Besides the counter, we can also use the command "break," which interrupts the loop when reaching this command like in the following example:
 
-```
+```bash
 #!/bin/bash
 
 counter=0
@@ -475,7 +500,7 @@ do
 done
 ```
 
-```
+```bash
 $ ./WhileBreaker.sh
 
 Counter: 1
@@ -488,7 +513,7 @@ Counter: 4
 
 Case statements are also known as switch-case statements in other languages, such as C/C++ and C#. The main difference between if-else and switch-case is that if-else constructs allow us to check any boolean expression, while switch-case always compares only the variable with the exact value.
 
-```
+```bash
 case <expression> in
 	pattern_1 ) statements ;;
 	pattern_2 ) statements ;;
@@ -498,7 +523,7 @@ esac
 
 The definition of switch-case starts with case, followed by the variable or value as an expression, which is then compared in the pattern. If the variable or value matches the expression, then the statements are executed after the parenthesis and ended with a double semicolon (;;).
 
-```
+```bash
 <SNIP>
 # Available options
 echo -e "Additional options available:"
@@ -525,7 +550,7 @@ We combine several commands in a block between curly brackets ( { ... } ) and ca
 It is important to note that functions must always be defined logically before the first call since a script is also processed from top to bottom. Therefore the definition of a function is always at the beginning of the script. There are two methods to define the functions:
 
 - Method 1
-```
+```bash
 function name {
 	<commands>
 }
@@ -533,7 +558,7 @@ function name {
 
 - Method 2
 
-```
+```bash
 name() {
 	<commands>
 }
@@ -544,7 +569,7 @@ name() {
 Such functions should be designed so that they can be used with a fixed structure of the values or at least only with a fixed format. In principle, the same applies to the passed parameters as to parameters passed to a shell script. These are $1 - $9 (${n}), or $variable. Each function has its own set of parameters. So they do not collide with those of other functions or the parameters of the shell script.
 
 An important difference between bash scripts and other programming languages is that all defined variables are always processed globally unless otherwise declared by "local."
-```
+```bash
 #!/bin/bash
 
 function print_pars {
@@ -580,7 +605,7 @@ To get the value of a function back, we can use several methods like return, ech
 
 - Return.sh
 
-```
+```bash
 #!/bin/bash
 
 function given_args {
@@ -614,7 +639,20 @@ echo -e "Content of the variable: \n\t$content"
 
 Bash allows us to debug our code by using the "-x" (xtrace) and "-v" options. 
 
-```
+```bash
 $ bash -x script.sh
 ```
 
+- You could also set the trace option isnide the script , as well as disable it
+
+```bash
+#!/bin/bash
+set -x # turn on trace mode
+
+# some operations
+echo "This is a test"
+var="Hello, World!"
+echo $var
+
+set +x # turn off trace mode
+```

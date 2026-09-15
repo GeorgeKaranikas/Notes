@@ -305,8 +305,10 @@ REG ADD HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
 - Firewall
   PS C:\htb> netsh advfirewall show allprofiles
   PS C:\htb> netsh advfirewall show state
-
-
+  PS C:\htb> netsh advfirewall firewall show rule name=all
+  PS C:\htb> netsh show rule name={rule_name}
+  PS C:\htb> netsh delete rule name={rule_name}
+ 
 - Windows Defender
     PS C:\htb> Get-MpComputerStatus
 
@@ -761,6 +763,27 @@ for /L %i in (1 1 254) do ping 172.16.5.%i -n 1 -w 100 | find "Reply"
 
 ```
 ### System Enum
+
+
+#### Enumerating sevices
+
+```powershell
+
+PS> Get-Service -Verbose LetsDefend | Format-List -Property *
+C:\> sc query
+
+C:\> sc query type=service state=all
+
+C:\> sc query {servicename}
+```
+
+- Starting/Stoping services
+
+```powershell
+C:\> sc start {servicename}
+
+C:\> sc stop {servicename}
+```
 
 ```
 C:\htb> systeminfo
@@ -1546,55 +1569,62 @@ $ for i in {1..254} ;do (ping -c 1 172.16.5.$i | grep "bytes from" &) ;done
 ```
 ### Linux Enviroment Enum
 
-```
---OS Version
 
+#### OS Version
+```bash
 $ cat /etc/os-release
-
---Kernel Version
-
+```
+#### Kernel Version
+```bash
 $ uname -a
 $ cat /proc/version
+```
 
 
+#### Network
 
-- Network
-
+```bash
 $ cat /etc/resolve.conf
 
-$arp -a
+$ arp -a
+```
+#### Mounted filesystem 
 
--Mounted filesystem 
-
+```bash
 $ df -h
+```
+#### Unmounted File Systems
 
--Unmounted File Systems
-
+```bash
 $ cat /etc/fstab | grep -v "#" | column -t
 
 $ lsblk
+```
 
---All Hidden Directories
-
+#### All Hidden Directories
+```bash
 $ find / -type d -name ".*" -ls 2>/dev/null
+```
 
-
---Writeable Directories
-
+#### Writeable Directories
+```bash
 $ find / -path /proc -prune -o -type d -perm -o+w 2>/dev/null
-
---Logged in Users
-
+```
+#### Logged in Users
+```bash
 $ w
 
 $ lastlog|grep -vi "**Never"
+```
+#### members of groups
 
--- members of groups
-
+```bash
 $ getent group sudo
+```
 
---Bash History
+#### Bash History
 
+```bash
 $ history
 
 $ find / -type f \( -name *_hist -o -name *_history \) -exec ls -l {} \; 2>/dev/null
@@ -1602,31 +1632,44 @@ $ find / -type f \( -name *_hist -o -name *_history \) -exec ls -l {} \; 2>/dev/
 ```
 
 
-```
--- Cronjobs
 
+#### Cronjobs
+
+```bash
 $ ls -la /etc/cron.daily/
+```
 
--With the help of pspy
+#### With the help of pspy
 
+```bash
 $ ./pspy64 -pf -i 1000
+```
 
-```
-```
---Running Services
+
+#### Running Services
+
+```bash
+$ systemctl status {sevrice} --type=service
+
+$ systemctl --all
+$ systemctl --all --type=service
+
 
 $ cat /etc/shells
 
 $ lpstat 
-
--List Current Processes
-
-$ ps aux | grep root
-
---List instaled packages
-$ apt list --installed | tr "/" " " | cut -d" " -f1,3 | sed 's/[0-9]://g' | tee -a installed_pkgs.list
-
 ```
+#### List Current Processes
+
+```bash
+$ ps aux | grep root
+```
+
+#### List instaled packages
+```bash
+$ apt list --installed | tr "/" " " | cut -d" " -f1,3 | sed 's/[0-9]://g' | tee -a installed_pkgs.list
+```
+
 ### Credentials Hunting
 
 ```
@@ -1862,15 +1905,29 @@ $ cd ~/.tmux/plugins/tmux-logging/scripts && ./togle_logging.sh
 
 ## Encodings 
 
-### Bash URL-Decoding
+### Bash 
 
-#### Using python3 binary
+####  URL-Decoding using python3 binary
 
 ```bash
 echo -n "%22" | python3 -c "import sys; from urllib.parse import unquote; print(unquote(sys.stdin.read()));"
 ```
 
+### Powershell
 
+```powershell
+PS> Expand-Archive C:\a.zip -DestinationPath C:\a
+```
+
+
+## Track linux file as it grows
+
+- Sometimes you need to wawtch a file like a log are appendable file as it grows without watching everythin it
+- Just its last lines
+
+```bash
+$ tail -n 10 -f {filename}
+```
 
 ## Openssl encryption and decryption
 
@@ -1904,6 +1961,12 @@ $ ssh-keygen
 $ openssl rsa -in private.pem -pubout > public.pem
 ```
 
+### Extract the public key from the certificate
+
+```bash
+openssl x509 -in cert.pem -pubkey -noout > cert-public.pem
+```
+
 
 ### Get Details from a key
 
@@ -1916,3 +1979,31 @@ $ openssl rsa -in private/public.pem -pubin -text -noout
 ```bash
 $ openssl rsautl -decrypt -inkey private.pem -in top_secret.enc > top_secret.txt
 ```
+
+### Generating X.509 Certificates
+
+```bash
+$ openssl req -x509 -newkey rsa:4096 -keyout /tmp/key.pem -out /tmp/cert.pem -days 365 -nodes
+```
+
+- **-x509** : This option outputs a certificate instead of a certificate request.
+- **-newkey {arg}** : This option is used to generate a new private key unless -key is given.
+- **-keyout filename** : This gives the filename to write any private key to that has been newly created or read from -key
+
+
+# Blue-Teaming
+
+
+## Windows
+
+
+### Windows Events
+
+
+#### wevtutil.exe
+
+
+```cmd
+C:\> wevtutil query-events Security /rd:true /count:1 /format:text /q:"Event[System[(EventID=4625)]]"
+```
+
