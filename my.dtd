@@ -1,1 +1,5 @@
-<!ENTITY joined "%begin;%file;%end;">
+<!ENTITY % file SYSTEM "file:///healthapp/target/classes/application.properties">
+<!ENTITY % start "<![CDATA[">
+<!ENTITY % end "]]>">
+<!ENTITY % wrap "<!ENTITY joined '%start;%file;%end;'>">
+%wrap;
